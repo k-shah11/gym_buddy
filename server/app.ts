@@ -92,5 +92,12 @@ export default async function runApp(
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Initialize database AFTER server starts listening (non-blocking)
+    import("./initDb").then(({ initializeDatabase }) => {
+      initializeDatabase().catch((error) => {
+        log(`Database initialization failed: ${error.message}`, "database");
+      });
+    });
   });
 }
