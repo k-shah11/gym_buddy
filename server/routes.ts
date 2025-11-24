@@ -416,6 +416,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recalculate all user's pots based on actual workout history
+  app.post('/api/pots/recalculate', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      
+      const results = await storage.recalculateAllUserPots(userId);
+      
+      res.json({
+        message: "Pots recalculated based on actual workout history",
+        results,
+      });
+    } catch (error) {
+      console.error("Error recalculating pots:", error);
+      res.status(500).json({ message: "Failed to recalculate pots" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

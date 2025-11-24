@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import BuddyCard from "@/components/BuddyCard";
 import AddBuddyDialog from "@/components/AddBuddyDialog";
 import StatsCard from "@/components/StatsCard";
-import { Coins, Mail, Check, Trash2 } from "lucide-react";
+import { Coins, Mail, Check, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -128,9 +128,29 @@ export default function BuddiesPage() {
     deleteInvitationMutation.mutate(invitationId);
   };
 
+  const recalcPosMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('POST', '/api/pots/recalculate', {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Success!",
+        description: "Pots recalculated based on your actual workout history",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to recalculate pots",
+        variant: "destructive",
+      });
+    },
+  });
+
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
 
-  // Get weekly status (simplified for now - would need more data from backend)
   const getWeeklyStatus = () => 'both-on-track' as const;
 
   if (isLoading) {
@@ -151,7 +171,20 @@ export default function BuddiesPage() {
           <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
             Gym Buddies
           </h1>
-          <AddBuddyDialog onAddBuddy={handleAddBuddy} />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => recalcPosMutation.mutate()}
+              disabled={recalcPosMutation.isPending}
+              data-testid="button-recalculate-pots"
+              title="Recalculate pot amounts based on actual workout history"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset Pots
+            </Button>
+            <AddBuddyDialog onAddBuddy={handleAddBuddy} />
+          </div>
         </div>
 
         <StatsCard

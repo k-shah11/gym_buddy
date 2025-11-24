@@ -343,6 +343,66 @@ export class DatabaseStorage implements IStorage {
       .delete(buddyInvitations)
       .where(eq(buddyInvitations.id, invitationId));
   }
+
+  async recalculatePotBalance(pairId: string, userId: string): Promise<number> {
+    // Get the pair
+    const pair = await this.getPair(pairId);
+    if (!pair) {
+      throw new Error("Pair not found");
+    }
+
+    // Get the last settlement for this pair to use as reference
+    const lastSettlements = await db
+      .select()
+      .from(settlements)
+      .where(eq(settlements.pairId, pairId))
+      .orderBy(desc(settlements.weekStartDate))
+      .limit(1);
+
+    // Use last settlement date or pair creation date as start point
+    const startDate = lastSettlements.length > 0 
+      ? new Date(lastSettlements[0].weekStartDate)
+      : pair.createdAt;
+
+    // Count user's missed workouts since reference date
+    const missedWorkouts = await db
+      .select({ count: count() })
+      .from(workouts)
+      .where(
+        and(
+          eq(workouts.userId, userId),
+          eq(workouts.status, "missed"),
+          gte(workouts.date, startDate.toISOString().split('T')[0])
+        )
+      );
+
+    const missCount = missedWorkouts[0]?.count || 0;
+    const correctBalance = missCount * 20;
+
+    // Update pot to correct balance
+    const [updatedPair] = await db
+      .update(pairs)
+      .set({
+        potBalance: correctBalance,
+        updatedAt: new Date(),
+      })
+      .where(eq(pairs.id, pairId))
+      .returning();
+
+    return correctBalance;
+  }
+
+  async recalculateAllUserPots(userId: string): Promise<Array<{ pairId: string; correctBalance: number }>> {
+    const userPairs = await this.getUserPairs(userId);
+    const results = [];
+
+    for (const pair of userPairs) {
+      const correctBalance = await this.recalculatePotBalance(pair.id, userId);
+      results.push({ pairId: pair.id, correctBalance });
+    }
+
+    return results;
+  }
 }
 
 export const storage = new DatabaseStorage();
