@@ -1,38 +1,250 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import {
+  users,
+  pairs,
+  workouts,
+  settlements,
+  type User,
+  type UpsertUser,
+  type Pair,
+  type InsertPair,
+  type Workout,
+  type InsertWorkout,
+  type Settlement,
+  type InsertSettlement,
+  type PairWithUsers,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, or, gte, lte, desc, sql, count } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+
+  // Pair operations
+  createPair(userAId: string, userBId: string): Promise<Pair>;
+  getUserPairs(userId: string): Promise<Array<Pair & { buddyId: string; buddyUser: User }>>;
+  getPair(pairId: string): Promise<Pair | undefined>;
+  updatePotBalance(pairId: string, amount: number): Promise<Pair>;
+  resetPotBalance(pairId: string): Promise<{ oldBalance: number; pair: Pair }>;
+  
+  // Workout operations
+  getWorkout(userId: string, date: string): Promise<Workout | undefined>;
+  createWorkout(workout: InsertWorkout): Promise<Workout>;
+  getUserWorkouts(userId: string, startDate: string, endDate: string): Promise<Workout[]>;
+  getWeekWorkoutCount(userId: string, weekStartDate: string): Promise<number>;
+  
+  // Settlement operations
+  createSettlement(settlement: InsertSettlement): Promise<Settlement>;
+  getPairSettlements(pairId: string): Promise<Settlement[]>;
+  getSettlementForWeek(pairId: string, weekStartDate: string): Promise<Settlement | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
+  // User operations
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  // Pair operations
+  async createPair(userAId: string, userBId: string): Promise<Pair> {
+    // Normalize pair so userA < userB to prevent duplicates
+    const [smallerId, largerId] = userAId < userBId ? [userAId, userBId] : [userBId, userAId];
+    
+    const [pair] = await db
+      .insert(pairs)
+      .values({
+        userAId: smallerId,
+        userBId: largerId,
+      })
+      .returning();
+    return pair;
+  }
+
+  async getUserPairs(userId: string): Promise<Array<Pair & { buddyId: string; buddyUser: User }>> {
+    // Get all pairs where user is either userA or userB
+    const userPairs = await db
+      .select()
+      .from(pairs)
+      .where(or(eq(pairs.userAId, userId), eq(pairs.userBId, userId)));
+
+    // For each pair, determine the buddy and fetch their info
+    const result = await Promise.all(
+      userPairs.map(async (pair) => {
+        // Determine which user is the buddy (the one that's not the current user)
+        const buddyId = pair.userAId === userId ? pair.userBId : pair.userAId;
+        const [buddyUser] = await db.select().from(users).where(eq(users.id, buddyId));
+        
+        return {
+          ...pair,
+          buddyId,
+          buddyUser: buddyUser!,
+        };
+      })
+    );
+
+    return result;
+  }
+
+  async getPair(pairId: string): Promise<Pair | undefined> {
+    const [pair] = await db.select().from(pairs).where(eq(pairs.id, pairId));
+    return pair;
+  }
+
+  async updatePotBalance(pairId: string, amount: number): Promise<Pair> {
+    const [pair] = await db
+      .update(pairs)
+      .set({
+        potBalance: sql`${pairs.potBalance} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(pairs.id, pairId))
+      .returning();
+    return pair;
+  }
+
+  async resetPotBalance(pairId: string): Promise<{ oldBalance: number; pair: Pair }> {
+    // Atomic operation using CTE to capture old balance before resetting
+    // This prevents concurrent deposits from being lost during settlement
+    const result: any = await db.execute(sql`
+      WITH old_balance AS (
+        SELECT pot_balance FROM ${pairs} WHERE id = ${pairId}
+      )
+      UPDATE ${pairs}
+      SET pot_balance = 0, updated_at = NOW()
+      WHERE id = ${pairId}
+      RETURNING *, (SELECT pot_balance FROM old_balance) as old_pot_balance
+    `);
+    
+    if (!result.rows || result.rows.length === 0) {
+      throw new Error("Pair not found");
+    }
+    
+    const row = result.rows[0];
+    const oldBalance = row.old_pot_balance;
+    
+    // Construct the updated pair object
+    const pair: Pair = {
+      id: row.id,
+      userAId: row.user_a_id,
+      userBId: row.user_b_id,
+      potBalance: row.pot_balance,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+    
+    return { oldBalance, pair };
+  }
+
+  // Workout operations
+  async getWorkout(userId: string, date: string): Promise<Workout | undefined> {
+    const [workout] = await db
+      .select()
+      .from(workouts)
+      .where(and(eq(workouts.userId, userId), eq(workouts.date, date)));
+    return workout;
+  }
+
+  async createWorkout(workout: InsertWorkout): Promise<Workout> {
+    const [result] = await db
+      .insert(workouts)
+      .values(workout)
+      .onConflictDoUpdate({
+        target: [workouts.userId, workouts.date],
+        set: {
+          status: workout.status,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
+  }
+
+  async getUserWorkouts(userId: string, startDate: string, endDate: string): Promise<Workout[]> {
+    return await db
+      .select()
+      .from(workouts)
+      .where(
+        and(
+          eq(workouts.userId, userId),
+          gte(workouts.date, startDate),
+          lte(workouts.date, endDate)
+        )
+      )
+      .orderBy(workouts.date);
+  }
+
+  async getWeekWorkoutCount(userId: string, weekStartDate: string): Promise<number> {
+    // Week is Monday to Sunday (7 days)
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekEndDate.getDate() + 6);
+    
+    const result = await db
+      .select({ count: count() })
+      .from(workouts)
+      .where(
+        and(
+          eq(workouts.userId, userId),
+          eq(workouts.status, "worked"),
+          gte(workouts.date, weekStartDate),
+          lte(workouts.date, weekEndDate.toISOString().split('T')[0])
+        )
+      );
+    
+    return result[0]?.count || 0;
+  }
+
+  // Settlement operations
+  async createSettlement(settlement: InsertSettlement): Promise<Settlement> {
+    const [result] = await db
+      .insert(settlements)
+      .values(settlement)
+      .returning();
+    return result;
+  }
+
+  async getPairSettlements(pairId: string): Promise<Settlement[]> {
+    return await db
+      .select()
+      .from(settlements)
+      .where(eq(settlements.pairId, pairId))
+      .orderBy(desc(settlements.weekStartDate));
+  }
+
+  async getSettlementForWeek(pairId: string, weekStartDate: string): Promise<Settlement | undefined> {
+    const [settlement] = await db
+      .select()
+      .from(settlements)
+      .where(
+        and(
+          eq(settlements.pairId, pairId),
+          eq(settlements.weekStartDate, weekStartDate)
+        )
+      );
+    return settlement;
+  }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -1,18 +1,122 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, date, timestamp, unique, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => ({
+    expireIdx: index("IDX_session_expire").on(table.expire),
+  })
+);
+
+// Users table - stores user account information from Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+// Pairs table - represents buddy relationships with shared honey pots
+export const pairs = pgTable("pairs", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  userAId: varchar("user_a_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  userBId: varchar("user_b_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  potBalance: integer("pot_balance").notNull().default(0), // in rupees/coins
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Ensure the same two users can't have duplicate pairs (normalized: userA < userB)
+  uniquePair: unique().on(table.userAId, table.userBId),
+  userAIdx: index("pairs_user_a_idx").on(table.userAId),
+  userBIdx: index("pairs_user_b_idx").on(table.userBId),
+}));
+
+// Workouts table - stores global daily workout status per user
+export const workouts = pgTable("workouts", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: date("date").notNull(), // store in UTC
+  status: text("status", { enum: ["worked", "missed"] }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Ensure one workout status per user per date
+  uniqueUserDate: unique().on(table.userId, table.date),
+  userDateIdx: index("workouts_user_date_idx").on(table.userId, table.date),
+}));
+
+// Settlements table - records pot settlements when one person loses
+export const settlements = pgTable("settlements", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  pairId: varchar("pair_id", { length: 255 }).notNull().references(() => pairs.id, { onDelete: "cascade" }),
+  weekStartDate: date("week_start_date").notNull(), // Monday of the week
+  loserUserId: varchar("loser_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  winnerUserId: varchar("winner_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(), // pot amount at time of settlement
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  // Prevent duplicate settlements for the same pair and week
+  uniquePairWeek: unique().on(table.pairId, table.weekStartDate),
+  pairWeekIdx: index("settlements_pair_week_idx").on(table.pairId, table.weekStartDate),
+}));
+
+// Zod schemas for validation
+export const upsertUserSchema = createInsertSchema(users).omit({
+  createdAt: true,
+  updatedAt: true,
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export const insertPairSchema = createInsertSchema(pairs).omit({
+  id: true,
+  potBalance: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWorkoutSchema = createInsertSchema(workouts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSettlementSchema = createInsertSchema(settlements).omit({
+  id: true,
+  createdAt: true,
+});
+
+// TypeScript types
 export type User = typeof users.$inferSelect;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
+
+export type Pair = typeof pairs.$inferSelect;
+export type InsertPair = z.infer<typeof insertPairSchema>;
+
+export type Workout = typeof workouts.$inferSelect;
+export type InsertWorkout = z.infer<typeof insertWorkoutSchema>;
+
+export type Settlement = typeof settlements.$inferSelect;
+export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
+
+// Helper type for pair with user details
+export type PairWithUsers = Pair & {
+  userA: User;
+  userB: User;
+};
+
+// Helper type for workout summary
+export type WeekSummary = {
+  weekStartDate: string;
+  workoutDays: Array<'worked' | 'missed' | null>;
+  workoutCount: number;
+};
