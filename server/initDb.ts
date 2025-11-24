@@ -2,15 +2,27 @@ import pg from 'pg';
 
 let initialized = false;
 
+// Timeout promise helper
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
+    )
+  ]);
+}
+
 export async function initializeDatabase() {
   if (initialized) return;
   
   try {
     const client = new pg.Client({
       connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 5000,
     });
     
-    await client.connect();
+    // Connect with timeout
+    await withTimeout(client.connect(), 10000);
 
     try {
       // Test if users table exists

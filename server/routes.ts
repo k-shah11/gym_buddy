@@ -21,7 +21,10 @@ function getUserId(req: Request): string {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database schema if needed (important for Railway)
-  await initializeDatabase();
+  // Don't block startup if initialization fails
+  initializeDatabase().catch((error) => {
+    console.warn("[DB] Schema initialization failed, will retry on first request:", error.message);
+  });
   
   // Auth middleware
   await setupAuth(app);
