@@ -3,13 +3,17 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import DailySwipeCard from "@/components/DailySwipeCard";
 import StatsCard from "@/components/StatsCard";
-import { Users, Coins } from "lucide-react";
+import { Users, Coins, Mail, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useLocation } from "wouter";
 import type { Workout } from "@shared/schema";
 
 export default function HomePage() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const today = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -25,6 +29,11 @@ export default function HomePage() {
   // Fetch stats
   const { data: stats } = useQuery<{ buddyCount: number; totalPots: number }>({
     queryKey: ['/api/stats'],
+  });
+
+  // Fetch received invitations
+  const { data: receivedInvitations = [] } = useQuery<any[]>({
+    queryKey: ['/api/invitations/received'],
   });
 
   // Log workout mutation
@@ -92,6 +101,36 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
+        {receivedInvitations.length > 0 && (
+          <Card className="rounded-2xl p-4 border-card-border bg-accent/5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-accent mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    You have {receivedInvitations.length} {receivedInvitations.length === 1 ? "buddy invitation" : "buddy invitations"}!
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {receivedInvitations.length === 1 
+                      ? `${receivedInvitations[0].inviter.email} invited you to be gym buddies`
+                      : `${receivedInvitations.length} friends invited you to be gym buddies`}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/buddies')}
+                className="hover-elevate active-elevate-2 flex-shrink-0"
+                data-testid="button-view-invitations"
+              >
+                View
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <DailySwipeCard 
           date={today}
           onSwipe={handleSwipe}
