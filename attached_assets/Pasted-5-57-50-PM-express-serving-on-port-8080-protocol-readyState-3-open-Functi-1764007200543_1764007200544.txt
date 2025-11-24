@@ -1,0 +1,90 @@
+5:57:50 PM [express] serving on port 8080
+    _protocol: '',
+    _readyState: 3,
+      open: [Function]
+Failed to get/create test user: ErrorEvent {
+    _receiver: null,
+  [Symbol(kTarget)]: WebSocket {
+    _sender: null,
+    },
+    _events: [Object: null prototype] {
+    _socket: null,
+    _eventsCount: 4,
+      error: [Function],
+    _bufferedAmount: 0,
+    _maxListeners: undefined,
+      message: [Function],
+    _isServer: false,
+    _binaryType: 'arraybuffer',
+      close: [Function],
+    _closeCode: 1006,
+    _redirects: 0,
+    _closeFrameReceived: false,
+    _autoPong: true,
+    _closeFrameSent: false,
+    _url: 'wss://postgres.railway.internal/v2',
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _req: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+  [Symbol(kError)]: Error: connect ECONNREFUSED fd12:c7ea:7179:1:2000:ae:ba4:de3a:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16) {
+  [Symbol(kMessage)]: 'connect ECONNREFUSED fd12:c7ea:7179:1:2000:ae:ba4:de3a:443'
+    errno: -111,
+    code: 'ECONNREFUSED',
+}
+    syscall: 'connect',
+5:58:40 PM [express] GET /api/auth/user 500 in 56ms :: {"message":"Auth initialization failed"}
+    address: 'fd12:c7ea:7179:1:2000:ae:ba4:de3a',
+    port: 443
+    [Symbol(kCapture)]: false
+  },
+  },
+  [Symbol(kType)]: 'error',
+5:58:42 PM [express] GET /api/login 302 in 3ms
+    _extensions: {},
+    _socket: null,
+    _closeFrameReceived: false,
+    _bufferedAmount: 0,
+    _closeFrameSent: false,
+    _isServer: false,
+    _closeMessage: <Buffer >,
+    _redirects: 0,
+    _closeTimer: null,
+    _autoPong: true,
+    _errorEmitted: true,
+    _url: 'wss://postgres.railway.internal/v2',
+Failed to get/create test user: ErrorEvent {
+    _paused: false,
+    _req: null,
+    _receiver: null,
+  [Symbol(kTarget)]: WebSocket {
+    _protocol: '',
+    _readyState: 3,
+    _sender: null,
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    [Symbol(kCapture)]: false
+  },
+  [Symbol(kType)]: 'error',
+  [Symbol(kError)]: Error: connect ECONNREFUSED fd12:c7ea:7179:1:2000:ae:ba4:de3a:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1555:16) {
+    errno: -111,
+    code: 'ECONNREFUSED',
+    syscall: 'connect',
+    address: 'fd12:c7ea:7179:1:2000:ae:ba4:de3a',
+    port: 443
+  },
+  [Symbol(kMessage)]: 'connect ECONNREFUSED fd12:c7ea:7179:1:2000:ae:ba4:de3a:443'
+}
+5:58:43 PM [express] GET /api/auth/user 500 in 29ms :: {"message":"Auth initialization failed"}
