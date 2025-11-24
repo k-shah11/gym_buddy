@@ -30,7 +30,7 @@ export default function BuddiesPage() {
   // Add buddy mutation
   const addBuddyMutation = useMutation({
     mutationFn: async ({ email, name }: { email: string; name: string }) => {
-      return await apiRequest('/api/buddies', 'POST', { email });
+      return await apiRequest('POST', '/api/buddies', { email });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });

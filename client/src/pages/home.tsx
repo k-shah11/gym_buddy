@@ -30,7 +30,7 @@ export default function HomePage() {
   // Log workout mutation
   const logWorkoutMutation = useMutation({
     mutationFn: async (worked: boolean) => {
-      return await apiRequest('/api/workouts', 'POST', {
+      return await apiRequest('POST', '/api/workouts', {
         status: worked ? 'worked' : 'missed',
       });
     },
@@ -63,7 +63,7 @@ export default function HomePage() {
   useEffect(() => {
     const evaluateWeeks = async () => {
       try {
-        await apiRequest('/api/evaluate-weeks', 'POST', {});
+        await apiRequest('POST', '/api/evaluate-weeks', {});
         queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
         queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
       } catch (error) {
