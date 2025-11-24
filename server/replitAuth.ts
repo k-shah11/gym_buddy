@@ -166,20 +166,27 @@ const isAuthenticatedFallback: RequestHandler = async (req, res, next) => {
     }
     
     // Set user on request with proper structure for passport
-    req.user = { 
+    const userObj = { 
       claims: { sub: testUserId }, 
       id: user!.id,
       email: user!.email,
       firstName: user!.firstName,
       lastName: user!.lastName,
       profileImageUrl: user!.profileImageUrl,
-    } as any;
+    };
     
-    // Save the session
-    req.login(req.user, (err) => {
+    req.user = userObj as any;
+    
+    // Manually save to session (bypass passport serialization for fallback)
+    (req.session as any).passport = {
+      user: userObj,
+    };
+    
+    // Mark session as modified and save
+    req.session.save((err) => {
       if (err) {
-        console.error("Failed to login test user:", err);
-        return res.status(500).json({ message: "Auth initialization failed" });
+        console.error("Failed to save session:", err);
+        return res.status(500).json({ message: "Session save failed" });
       }
       next();
     });
