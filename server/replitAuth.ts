@@ -148,6 +148,11 @@ const isAuthenticatedFallback: RequestHandler = async (req, res, next) => {
   // For dev/test on Railway, create or use a test user
   const testUserId = "dev-user-railway";
   
+  // If already authenticated via session, proceed
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  
   // Ensure test user exists in database
   try {
     let user = await storage.getUser(testUserId);
@@ -159,14 +164,29 @@ const isAuthenticatedFallback: RequestHandler = async (req, res, next) => {
         lastName: "User",
       });
     }
-    // Set user on request
-    req.user = { claims: { sub: testUserId }, ...user } as any;
+    
+    // Set user on request with proper structure for passport
+    req.user = { 
+      claims: { sub: testUserId }, 
+      id: user!.id,
+      email: user!.email,
+      firstName: user!.firstName,
+      lastName: user!.lastName,
+      profileImageUrl: user!.profileImageUrl,
+    } as any;
+    
+    // Save the session
+    req.login(req.user, (err) => {
+      if (err) {
+        console.error("Failed to login test user:", err);
+        return res.status(500).json({ message: "Auth initialization failed" });
+      }
+      next();
+    });
   } catch (error) {
     console.error("Failed to get/create test user:", error);
     return res.status(500).json({ message: "Auth initialization failed" });
   }
-  
-  return next();
 };
 
 export const isAuthenticated: RequestHandler = process.env.REPL_ID 
