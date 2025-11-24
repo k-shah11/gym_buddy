@@ -2,6 +2,7 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, setupFallbackAuthRoutes, isAuthenticated } from "./replitAuth";
+import { initializeDatabase } from "./initDb";
 import { insertPairSchema, insertWorkoutSchema } from "@shared/schema";
 
 // Helper to get Monday of a given date's week
@@ -19,6 +20,9 @@ function getUserId(req: Request): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database schema if needed (important for Railway)
+  await initializeDatabase();
+  
   // Auth middleware
   await setupAuth(app);
   
