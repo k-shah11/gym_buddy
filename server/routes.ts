@@ -1,7 +1,7 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, setupFallbackAuthRoutes, isAuthenticated } from "./replitAuth";
 import { insertPairSchema, insertWorkoutSchema } from "@shared/schema";
 
 // Helper to get Monday of a given date's week
@@ -21,6 +21,9 @@ function getUserId(req: Request): string {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // Fallback auth routes for non-Replit environments (e.g., Railway)
+  setupFallbackAuthRoutes(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req, res) => {

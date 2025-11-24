@@ -199,3 +199,23 @@ export const isAuthenticated: RequestHandler = process.env.REPL_ID
       }
     }
   : isAuthenticatedFallback;
+
+export function setupFallbackAuthRoutes(app: Express) {
+  // Fallback routes for environments without Replit Auth (e.g., Railway)
+  if (process.env.REPL_ID) return; // Skip if using Replit Auth
+
+  // Login endpoint - just redirect to home since test user is auto-authenticated
+  app.get("/api/login", (_req, res) => {
+    res.redirect("/");
+  });
+
+  // Logout endpoint - just redirect to home (test user stays authenticated)
+  app.get("/api/logout", (_req, res) => {
+    res.redirect("/");
+  });
+
+  // Callback endpoint (not used in fallback, but needed for compatibility)
+  app.get("/api/callback", (_req, res) => {
+    res.redirect("/");
+  });
+}
