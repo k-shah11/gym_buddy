@@ -1,0 +1,77 @@
+Failed to get/create test user: error: relation "users" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DatabaseStorage.getUser (file:///app/dist/index.js:166:20)
+    at async isAuthenticatedFallback (file:///app/dist/index.js:503:16) {
+  length: 105,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+6:05:43 PM [express] GET /api/auth/user 500 in 47ms :: {"message":"Auth initialization failed"}
+6:05:45 PM [express] GET /api/login 302 in 3ms
+  hint: undefined,
+Failed to get/create test user: error: relation "users" does not exist
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async DatabaseStorage.getUser (file:///app/dist/index.js:166:20)
+    at async isAuthenticatedFallback (file:///app/dist/index.js:503:16) {
+  length: 105,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+6:05:46 PM [express] GET /api/auth/user 500 in 32ms :: {"message":"Auth initialization failed"}
+6:05:49 PM [express] GET /api/login 302 in 2ms
+Failed to get/create test user: error: relation "users" does not exist
+}
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+6:05:50 PM [express] GET /api/auth/user 500 in 35ms :: {"message":"Auth initialization failed"}
+    at async file:///app/node_modules/drizzle-orm/node-postgres/session.js:83:22
+  severity: 'ERROR',
+    at async DatabaseStorage.getUser (file:///app/dist/index.js:166:20)
+    at async isAuthenticatedFallback (file:///app/dist/index.js:503:16) {
+  length: 105,
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '103',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
