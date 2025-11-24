@@ -94,10 +94,15 @@ export default async function runApp(
     log(`serving on port ${port}`);
     
     // Initialize database AFTER server starts listening (non-blocking)
+    // This ensures the app is responsive even if DB init takes time
     import("./initDb").then(({ initializeDatabase }) => {
       initializeDatabase().catch((error) => {
         log(`Database initialization failed: ${error.message}`, "database");
+        log("App is still running, some features may be unavailable", "database");
+        // Don't re-throw - let the app continue running
       });
+    }).catch((error) => {
+      log(`Failed to import database module: ${error.message}`, "database");
     });
   });
 }
