@@ -230,8 +230,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else if (previousStatus === "missed" && status === "worked") {
           // Changed from missed to worked out - REMOVE ₹20
           potAdjustment = -20;
-        } else if (previousStatus === null && status === "missed") {
-          // First entry and it's a miss - ADD ₹20
+        } else if (!previousStatus && status === "missed") {
+          // First entry and it's a miss - ADD ₹20 (catches both null and undefined)
           potAdjustment = 20;
         }
         
