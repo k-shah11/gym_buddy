@@ -10,9 +10,13 @@ import { storage } from "./storage";
 
 const getOidcConfig = memoize(
   async () => {
+    const replId = process.env.REPL_ID;
+    if (!replId) {
+      throw new Error("REPL_ID not set - Replit Auth not available on this platform");
+    }
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
+      replId
     );
   },
   { maxAge: 3600 * 1000 }
@@ -67,6 +71,13 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // Check if running on Replit (with REPL_ID) or external platform
+  if (!process.env.REPL_ID) {
+    console.log("[AUTH] Replit Auth not available - set REPL_ID to enable");
+    // Skip Replit auth setup if not on Replit
+    return;
+  }
 
   const config = await getOidcConfig();
 
@@ -132,31 +143,59 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
-  }
-
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
+// Fallback middleware for when Replit Auth is not available (e.g., Railway)
+const isAuthenticatedFallback: RequestHandler = async (req, res, next) => {
+  // For dev/test on Railway, create or use a test user
+  const testUserId = "dev-user-railway";
+  
+  // Ensure test user exists in database
   try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
+    let user = await storage.getUser(testUserId);
+    if (!user) {
+      user = await storage.upsertUser({
+        id: testUserId,
+        email: "test@railway.local",
+        firstName: "Test",
+        lastName: "User",
+      });
+    }
+    // Set user on request
+    req.user = { claims: { sub: testUserId }, ...user } as any;
   } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
+    console.error("Failed to get/create test user:", error);
+    return res.status(500).json({ message: "Auth initialization failed" });
   }
+  
+  return next();
 };
+
+export const isAuthenticated: RequestHandler = process.env.REPL_ID 
+  ? async (req, res, next) => {
+      const user = req.user as any;
+
+      if (!req.isAuthenticated() || !user.expires_at) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const now = Math.floor(Date.now() / 1000);
+      if (now <= user.expires_at) {
+        return next();
+      }
+
+      const refreshToken = user.refresh_token;
+      if (!refreshToken) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+      }
+
+      try {
+        const config = await getOidcConfig();
+        const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+        updateUserSession(user, tokenResponse);
+        return next();
+      } catch (error) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+      }
+    }
+  : isAuthenticatedFallback;
