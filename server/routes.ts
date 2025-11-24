@@ -171,6 +171,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete an invitation
+  app.delete('/api/invitations/:invitationId', isAuthenticated, async (req, res) => {
+    try {
+      const { invitationId } = req.params;
+      
+      await storage.deleteInvitation(invitationId);
+      
+      res.json({
+        message: "Invitation deleted",
+      });
+    } catch (error) {
+      console.error("Error deleting invitation:", error);
+      res.status(500).json({ message: "Failed to delete invitation" });
+    }
+  });
+
   // Workout routes
   app.get('/api/workouts/today', isAuthenticated, async (req, res) => {
     try {

@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import BuddyCard from "@/components/BuddyCard";
 import AddBuddyDialog from "@/components/AddBuddyDialog";
 import StatsCard from "@/components/StatsCard";
-import { Coins, Mail, Check, X } from "lucide-react";
+import { Coins, Mail, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -95,12 +95,37 @@ export default function BuddiesPage() {
     },
   });
 
+  const deleteInvitationMutation = useMutation({
+    mutationFn: async (invitationId: string) => {
+      return await apiRequest('DELETE', `/api/invitations/${invitationId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invitations/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/invitations/received'] });
+      toast({
+        title: "Deleted",
+        description: "Invitation removed",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete invitation",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddBuddy = (email: string, name: string) => {
     addBuddyMutation.mutate({ email, name });
   };
 
   const handleAcceptInvitation = (invitationId: string) => {
     acceptInvitationMutation.mutate(invitationId);
+  };
+
+  const handleDeleteInvitation = (invitationId: string) => {
+    deleteInvitationMutation.mutate(invitationId);
   };
 
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
@@ -150,12 +175,22 @@ export default function BuddiesPage() {
                       size="sm"
                       variant="default"
                       onClick={() => handleAcceptInvitation(invitation.id)}
-                      disabled={acceptInvitationMutation.isPending}
+                      disabled={acceptInvitationMutation.isPending || deleteInvitationMutation.isPending}
                       className="hover-elevate active-elevate-2"
                       data-testid="button-accept-invitation"
                     >
                       <Check className="w-4 h-4 mr-1" />
                       Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDeleteInvitation(invitation.id)}
+                      disabled={deleteInvitationMutation.isPending}
+                      className="text-destructive hover:text-destructive hover-elevate active-elevate-2"
+                      data-testid="button-delete-received-invitation"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -179,9 +214,21 @@ export default function BuddiesPage() {
                       </span>
                     </div>
                   </div>
-                  <Badge variant="outline" className="whitespace-nowrap">
-                    Pending
-                  </Badge>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="whitespace-nowrap">
+                      Pending
+                    </Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDeleteInvitation(invitation.id)}
+                      disabled={deleteInvitationMutation.isPending}
+                      className="text-destructive hover:text-destructive hover-elevate active-elevate-2"
+                      data-testid="button-delete-sent-invitation"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}

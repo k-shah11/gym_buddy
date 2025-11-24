@@ -48,6 +48,7 @@ export interface IStorage {
   getInvitationsForEmail(email: string): Promise<Array<BuddyInvitation & { inviter: User }>>;
   acceptInvitation(invitationId: string, acceptingUserId: string): Promise<{ invitation: BuddyInvitation; pair: Pair }>;
   getPendingInvitations(userId: string): Promise<Array<BuddyInvitation & { invitee: Partial<User> | null }>>;
+  deleteInvitation(invitationId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -335,6 +336,12 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
+  }
+
+  async deleteInvitation(invitationId: string): Promise<void> {
+    await db
+      .delete(buddyInvitations)
+      .where(eq(buddyInvitations.id, invitationId));
   }
 }
 
