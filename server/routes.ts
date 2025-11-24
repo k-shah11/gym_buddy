@@ -203,21 +203,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/workouts', isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { date, status } = insertWorkoutSchema.parse({
+      const date = req.body.date || new Date().toISOString().split('T')[0];
+      const { status } = insertWorkoutSchema.parse({
         userId,
-        date: req.body.date || new Date().toISOString().split('T')[0],
+        date,
         status: req.body.status,
       });
+      
+      // Get previous workout status (if exists)
+      const previousWorkout = await storage.getWorkout(userId, date);
+      const previousStatus = previousWorkout?.status;
       
       // Create or update workout
       const workout = await storage.createWorkout({ userId, date, status });
       
-      // If user missed workout, add 20 to ALL their pair pots (regardless of userA/userB position)
-      if (status === "missed") {
-        const pairs = await storage.getUserPairs(userId);
-        await Promise.all(
-          pairs.map(pair => storage.updatePotBalance(pair.id, 20))
-        );
+      // Only update pot balance if status actually changed
+      const pairs = await storage.getUserPairs(userId);
+      
+      if (previousStatus !== status) {
+        // Status changed - determine pot adjustment
+        let potAdjustment = 0;
+        
+        if (previousStatus === "worked" && status === "missed") {
+          // Changed from worked out to missed - ADD ₹20
+          potAdjustment = 20;
+        } else if (previousStatus === "missed" && status === "worked") {
+          // Changed from missed to worked out - REMOVE ₹20
+          potAdjustment = -20;
+        } else if (previousStatus === null && status === "missed") {
+          // First entry and it's a miss - ADD ₹20
+          potAdjustment = 20;
+        }
+        
+        // Update all pair pots
+        if (potAdjustment !== 0) {
+          await Promise.all(
+            pairs.map(pair => storage.updatePotBalance(pair.id, potAdjustment))
+          );
+        }
       }
       
       res.json(workout);
