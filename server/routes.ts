@@ -19,12 +19,22 @@ function getUserId(req: Request): string {
   return (req.user as any)?.claims?.sub;
 }
 
+let dbInitialized = false;
+
+async function ensureDbInitialized() {
+  if (dbInitialized) return;
+  try {
+    await initializeDatabase();
+    dbInitialized = true;
+  } catch (error) {
+    // Don't throw - just log and continue
+    console.warn("[DB] Schema initialization skipped:", error);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database schema if needed (important for Railway)
-  // Don't block startup if initialization fails
-  initializeDatabase().catch((error) => {
-    console.warn("[DB] Schema initialization failed, will retry on first request:", error.message);
-  });
+  // Initialize database schema in background (non-blocking)
+  ensureDbInitialized().catch(console.error);
   
   // Auth middleware
   await setupAuth(app);
