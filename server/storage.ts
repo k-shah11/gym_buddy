@@ -3,6 +3,7 @@ import {
   pairs,
   workouts,
   settlements,
+  buddyInvitations,
   type User,
   type UpsertUser,
   type Pair,
@@ -11,6 +12,8 @@ import {
   type InsertWorkout,
   type Settlement,
   type InsertSettlement,
+  type BuddyInvitation,
+  type InsertBuddyInvitation,
   type PairWithUsers,
 } from "@shared/schema";
 import { db } from "./db";
@@ -39,6 +42,12 @@ export interface IStorage {
   createSettlement(settlement: InsertSettlement): Promise<Settlement>;
   getPairSettlements(pairId: string): Promise<Settlement[]>;
   getSettlementForWeek(pairId: string, weekStartDate: string): Promise<Settlement | undefined>;
+  
+  // Buddy invitation operations
+  createInvitation(invitation: InsertBuddyInvitation): Promise<BuddyInvitation>;
+  getInvitationsForEmail(email: string): Promise<Array<BuddyInvitation & { inviter: User }>>;
+  acceptInvitation(invitationId: string, acceptingUserId: string): Promise<{ invitation: BuddyInvitation; pair: Pair }>;
+  getPendingInvitations(userId: string): Promise<Array<BuddyInvitation & { invitee: Partial<User> | null }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -244,6 +253,88 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return settlement;
+  }
+
+  // Buddy invitation operations
+  async createInvitation(invitation: InsertBuddyInvitation): Promise<BuddyInvitation> {
+    const [result] = await db
+      .insert(buddyInvitations)
+      .values(invitation)
+      .onConflictDoNothing()
+      .returning();
+    return result;
+  }
+
+  async getInvitationsForEmail(email: string): Promise<Array<BuddyInvitation & { inviter: User }>> {
+    const invitations = await db
+      .select()
+      .from(buddyInvitations)
+      .where(and(
+        eq(buddyInvitations.inviteeEmail, email),
+        eq(buddyInvitations.status, "pending")
+      ));
+
+    return Promise.all(
+      invitations.map(async (inv) => {
+        const [inviter] = await db.select().from(users).where(eq(users.id, inv.inviterUserId));
+        return {
+          ...inv,
+          inviter: inviter!,
+        };
+      })
+    );
+  }
+
+  async acceptInvitation(invitationId: string, acceptingUserId: string): Promise<{ invitation: BuddyInvitation; pair: Pair }> {
+    // Get the invitation
+    const [invitation] = await db
+      .select()
+      .from(buddyInvitations)
+      .where(eq(buddyInvitations.id, invitationId));
+
+    if (!invitation) {
+      throw new Error("Invitation not found");
+    }
+
+    // Mark invitation as accepted
+    const [updatedInvitation] = await db
+      .update(buddyInvitations)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date(),
+      })
+      .where(eq(buddyInvitations.id, invitationId))
+      .returning();
+
+    // Create pair between inviter and acceptor
+    const pair = await this.createPair(invitation.inviterUserId, acceptingUserId);
+
+    return { invitation: updatedInvitation, pair };
+  }
+
+  async getPendingInvitations(userId: string): Promise<Array<BuddyInvitation & { invitee: Partial<User> | null }>> {
+    const invitations = await db
+      .select()
+      .from(buddyInvitations)
+      .where(and(
+        eq(buddyInvitations.inviterUserId, userId),
+        eq(buddyInvitations.status, "pending")
+      ));
+
+    return Promise.all(
+      invitations.map(async (inv) => {
+        // Try to find user with this email
+        const [invitee] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, inv.inviteeEmail));
+
+        return {
+          ...inv,
+          invitee: invitee || null,
+        };
+      })
+    );
   }
 }
 

@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/buddies', isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const { email } = req.body;
+      const { email, name } = req.body;
       
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
@@ -73,38 +73,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Find buddy by email
       const buddy = await storage.getUserByEmail(email);
-      if (!buddy) {
-        return res.status(404).json({ message: "User with this email not found. They need to sign up first." });
+      
+      if (buddy) {
+        // User exists - create pair directly
+        if (buddy.id === userId) {
+          return res.status(400).json({ message: "You cannot add yourself as a buddy" });
+        }
+        
+        // Check if pair already exists
+        const existingPairs = await storage.getUserPairs(userId);
+        const alreadyPaired = existingPairs.some(p => p.buddyId === buddy.id);
+        
+        if (alreadyPaired) {
+          return res.status(400).json({ message: "You are already buddies with this user" });
+        }
+        
+        // Create pair
+        const pair = await storage.createPair(userId, buddy.id);
+        
+        res.json({
+          pairId: pair.id,
+          buddy: {
+            id: buddy.id,
+            name: `${buddy.firstName || ''} ${buddy.lastName || ''}`.trim() || buddy.email,
+            email: buddy.email,
+            profileImageUrl: buddy.profileImageUrl,
+          },
+          potBalance: pair.potBalance,
+        });
+      } else {
+        // User hasn't signed up yet - create invitation
+        const invitation = await storage.createInvitation({
+          inviterUserId: userId,
+          inviteeEmail: email,
+          inviteeName: name || email,
+        });
+        
+        res.json({
+          type: "invitation",
+          message: `Invitation sent to ${email}! They can sign up and accept to become your buddy.`,
+          invitation,
+        });
       }
-      
-      if (buddy.id === userId) {
-        return res.status(400).json({ message: "You cannot add yourself as a buddy" });
-      }
-      
-      // Check if pair already exists
-      const existingPairs = await storage.getUserPairs(userId);
-      const alreadyPaired = existingPairs.some(p => p.buddyId === buddy.id);
-      
-      if (alreadyPaired) {
-        return res.status(400).json({ message: "You are already buddies with this user" });
-      }
-      
-      // Create pair
-      const pair = await storage.createPair(userId, buddy.id);
-      
-      res.json({
-        pairId: pair.id,
-        buddy: {
-          id: buddy.id,
-          name: `${buddy.firstName || ''} ${buddy.lastName || ''}`.trim() || buddy.email,
-          email: buddy.email,
-          profileImageUrl: buddy.profileImageUrl,
-        },
-        potBalance: pair.potBalance,
-      });
     } catch (error) {
       console.error("Error adding buddy:", error);
       res.status(500).json({ message: "Failed to add buddy" });
+    }
+  });
+
+  // Get pending invitations sent by user
+  app.get('/api/invitations/pending', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const invitations = await storage.getPendingInvitations(userId);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching pending invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  // Get invitations received by user (at signup)
+  app.get('/api/invitations/received', isAuthenticated, async (req, res) => {
+    try {
+      const user = (req.user as any)?.claims;
+      const userEmail = user?.email;
+      
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email not found" });
+      }
+      
+      const invitations = await storage.getInvitationsForEmail(userEmail);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching received invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  // Accept an invitation
+  app.post('/api/invitations/:invitationId/accept', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { invitationId } = req.params;
+      
+      const { invitation, pair } = await storage.acceptInvitation(invitationId, userId);
+      
+      // Invalidate cache on client
+      res.json({
+        message: "Invitation accepted!",
+        invitation,
+        pair,
+      });
+    } catch (error) {
+      console.error("Error accepting invitation:", error);
+      res.status(500).json({ message: "Failed to accept invitation" });
     }
   });
 

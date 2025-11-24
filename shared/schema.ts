@@ -71,6 +71,22 @@ export const settlements = pgTable("settlements", {
   pairWeekIdx: index("settlements_pair_week_idx").on(table.pairId, table.weekStartDate),
 }));
 
+// Buddy Invitations table - stores pending invitations for users who haven't signed up yet
+export const buddyInvitations = pgTable("buddy_invitations", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  inviterUserId: varchar("inviter_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  inviteeEmail: varchar("invitee_email").notNull(), // Email of person being invited
+  inviteeName: varchar("invitee_name"), // Name provided by inviter
+  status: text("status", { enum: ["pending", "accepted", "declined"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
+}, (table) => ({
+  // Prevent duplicate pending invitations for same inviter-email pair
+  uniquePendingInvite: unique().on(table.inviterUserId, table.inviteeEmail),
+  inviterIdx: index("invitations_inviter_idx").on(table.inviterUserId),
+  emailIdx: index("invitations_email_idx").on(table.inviteeEmail),
+}));
+
 // Zod schemas for validation
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -95,6 +111,13 @@ export const insertSettlementSchema = createInsertSchema(settlements).omit({
   createdAt: true,
 });
 
+export const insertBuddyInvitationSchema = createInsertSchema(buddyInvitations).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  acceptedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -107,6 +130,9 @@ export type InsertWorkout = z.infer<typeof insertWorkoutSchema>;
 
 export type Settlement = typeof settlements.$inferSelect;
 export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
+
+export type BuddyInvitation = typeof buddyInvitations.$inferSelect;
+export type InsertBuddyInvitation = z.infer<typeof insertBuddyInvitationSchema>;
 
 // Helper type for pair with user details
 export type PairWithUsers = Pair & {
