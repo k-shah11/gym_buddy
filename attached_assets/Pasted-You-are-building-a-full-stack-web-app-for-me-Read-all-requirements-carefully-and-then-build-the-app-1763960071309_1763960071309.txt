@@ -1,0 +1,275 @@
+You are building a full-stack web app for me. Read all requirements carefully and then build the app step by step. Ask questions only when absolutely necessary; otherwise, make reasonable assumptions and state them clearly.
+📌 App Summary
+Build a web app where a user and their gym buddies track whether they worked out each day.
+Swipe right = worked out 💪
+Swipe left = didn’t 😭
+Key points:
+Each user has one daily workout status (worked / didn’t) for that date.
+It is not per partner.
+If I don’t work out on a given day, then all shared pots I have with every partner get +20 coins each.
+If I do work out, no pots change that day.
+Pot / Competition Rule
+For each pair of users:
+There is a single shared “Honey Pot” (coins, representing money like ₹20 per missed day per person).
+The Honey Pot keeps accumulating indefinitely as long as, in every week so far, both partners have worked out at least 4 days.
+The first week where exactly one person works out fewer than 4 days, that person pays the entire accumulated pot (for that pair) to the other person:
+The pot for that pair resets to 0 starting the next week.
+If in a given week:
+Both ≥ 4 days → pot continues accumulating (no settlement).
+Exactly one < 4 days → that person loses; pot is paid out and reset for that pair.
+Both < 4 days → no one wins; pot continues accumulating for that pair.
+Very important: This logic is applied per pair, but the weekly workout counts come from each user’s global daily workout status.
+The app must keep both users’ dashboards in sync from the very first version. If I miss a workout, all my relevant pair pots update, and my partners see those changes when they refresh (or via real-time updates).
+🛠 Tech Stack Requirements
+Use only the following stack unless I explicitly approve changes:
+Framework & Routing: Next.js (App Router, v13+)
+Language: TypeScript (preferred; use JS only if absolutely necessary)
+Styling: Tailwind CSS (no Bootstrap, no Material UI)
+State Management: React state + server components. Avoid Redux/Zustand unless absolutely critical.
+Auth & Database: Supabase (Auth + Postgres)
+Deployment:
+Frontend: Vercel
+Backend/DB: Supabase (managed Postgres)
+Assets: Place static images in public/ (e.g., public/avatars, public/icons).
+Keep the code beginner-friendly with clear comments and explanations.
+👥 User & Buddy System
+User Accounts
+Implement user accounts with Supabase Auth.
+Authentication: email + password or magic link (no social logins necessary).
+On signup, store:
+User ID (from Supabase auth)
+Name (display name)
+Email
+Created and updated timestamps
+Buddies / Pairs (like Splitwise)
+A user can add a gym buddy by their email address.
+Creating a buddy relationship:
+If the email belongs to an existing user, create a pair between the two.
+If not, you can:
+either create a “pending” link, or
+require that the buddy must already exist.
+Choose one approach and document it.
+A pair represents exactly two users.
+Each pair has:
+One shared Honey Pot balance
+Its own history of settlements
+Enforce that the same two users cannot have duplicate pairs.
+🏠 Page 1: Home / Daily Swipe Page
+This is the main interaction page, and the logic is per user, not per partner.
+Behavior
+For the currently logged-in user, show one card per day (today by default).
+The card asks: “Did you work out today?”
+There is no per-partner dropdown here, because:
+My workout status is global for the day.
+If I miss, all my active pair pots get updated.
+Swipe Interaction
+For V1, you can simulate swipe with two large buttons:
+Right button = “Yes, I worked out” (💪)
+Left button = “No, I skipped” (😭)
+When the user taps:
+Right (worked out):
+Record a workout entry for the user for that date with status = “worked”.
+Show celebratory avatar for the user.
+Do not change any pots.
+Left (didn’t work out):
+Record a workout entry for the user for that date with status = “missed”.
+For every pair that the user is part of:
+Add 20 coins to that pair’s pot.
+Show the user’s avatar crying on their screen.
+On the buddy’s dashboard, reflect updated pot totals (they’re “celebrating” relative to you).
+Constraints
+Prevent duplicate entries per day per user:
+A user should have at most one status (worked or missed) for a given date.
+Optionally allow editing (e.g., if user logged incorrectly), but document the rules if you add editing.
+UI
+Show:
+Today’s date.
+A summary like “You have X partners” and maybe a simple “Total active pots: ₹Y”.
+Two avatars: one for the logged-in user (main focus), plus a secondary “group” or representative avatar for buddies (optional).
+Avatars should be cute, minimal, and fit the Winnie-the-Pooh-like theme.
+📄 Page 2: Buddies & Pot Overview (Splitwise-style List)
+This page shows all pairs for the logged-in user and the current pot for each.
+For each pair row:
+Buddy’s name.
+Buddy’s email (optional).
+Current Honey Pot balance (e.g., “₹120 in the pot”).
+A simple status, for example:
+“Both on track this week”
+“You’re currently behind this week”
+“They’re currently behind this week”
+(You can approximate this based on current week’s workout counts.)
+Functionality
+A button like “Add buddy”:
+User enters buddy’s email and (optionally) name.
+Create or link the pair in the database.
+Clicking on a buddy row can navigate to:
+A detailed view for that pair (optional in v1) showing:
+Pot history
+Settlement history
+Weekly comparisons
+📊 Page 3: Weekly Summary / Dashboard
+This page shows weekly workout performance and when pots settle.
+Global Summary (per User)
+For the logged-in user:
+Show the last 4–8 weeks.
+For each week:
+A row of 7 day boxes (choose Mon–Sun or Sun–Sat and be consistent).
+Each day:
+✅ if the user worked out.
+❌ if they missed.
+Show:
+Total number of workout days that week.
+Whether they met the 4+ days target.
+Per Pair Interpretation
+Because a user’s workout status is global, but pots are per pair, the weekly settlement for each pair is calculated as:
+For pair (A, B), in week W:
+workout_days_A_week_W = count of worked entries for user A in that week (from global workouts table).
+workout_days_B_week_W = count of worked entries for user B in that week.
+For each pair, indicate:
+Which weeks (if any) had settlements.
+Who lost that week (if applicable).
+When pot was reset.
+The UI can start with a user-centric view (just my own weekly streaks) and later add per-pair breakdown.
+💰 Honey Pot Logic (Detailed, Per Pair)
+Daily
+When a user logs worked for a date:
+Record the workout as worked for that user and date.
+No pot changes.
+When a user logs missed:
+Record the workout as missed.
+For every pair where this user is a member:
+Increase that pair’s pot_balance by 20.
+Weekly Evaluation (Per Pair)
+Define a week clearly (e.g., Monday 00:00 to Sunday 23:59 UTC or local; choose and be consistent).
+For each completed week and each pair (A, B):
+Compute:
+workout_days_A for that week (from global workouts table).
+workout_days_B for that week.
+Check rules:
+If both ≥ 4:
+Do nothing to the pot (it just continues accumulating).
+If exactly one < 4:
+That person loses and pays the entire current pot for that pair to the other person.
+Insert a record into a settlements table:
+pair, week, loser, winner, amount (current pot).
+Reset that pair’s pot_balance to 0 after settlement, starting the next week.
+If both < 4:
+No one wins; pot rolls over.
+You can implement weekly evaluation as:
+A function that runs whenever either user opens the app and:
+Detects any completed weeks that have not yet been evaluated.
+Applies the correct settlement logic.
+Document this clearly in comments.
+🗄 Database Schema (Supabase / Postgres)
+Provide SQL for at least the following tables:
+users
+id (UUID, PK, from Supabase auth)
+email (unique)
+name
+created_at
+updated_at
+pairs
+id (PK)
+user_a_id (FK → users.id)
+user_b_id (FK → users.id)
+pot_balance (integer, e.g., store in rupees or coins)
+created_at
+updated_at
+Uniqueness constraint so the same two users can’t have multiple pairs.
+workouts
+id (PK)
+user_id (FK → users.id)
+date (date; store in UTC)
+status (text or enum: 'worked', 'missed')
+created_at
+updated_at
+Uniqueness constraint: (user_id, date) must be unique.
+Note: There is no pair_id here, because the workout status is global per user.
+settlements
+id (PK)
+pair_id (FK → pairs.id)
+week_start_date (date)
+loser_user_id (FK → users.id)
+winner_user_id (FK → users.id)
+amount (integer, equal to pot at time of settlement)
+created_at
+updated_at
+You may add extra columns/tables (like an invites table) but explain why.
+Before writing app code, you must:
+Output the full SQL for the schema.
+Explain the ERD (Entity-Relationship Diagram) in words:
+How users, pairs, workouts, and settlements relate.
+🎨 UI / Design Requirements
+Style: clean, minimal, fun, with plenty of white space.
+Colors:
+Soft palette, not overly colorful.
+Light background, muted accent color for buttons.
+Avatars:
+Use cute bear-like avatars inspired by Winnie-the-Pooh (but generic enough to avoid trademark issues).
+Place image files in public/avatars.
+Honey pot:
+Use a honey pot-style icon representing the shared pot.
+Place in public/icons.
+Components:
+Rounded cards (rounded-2xl etc.).
+Generous padding (p-4, p-6).
+Clear typography using Tailwind utilities.
+🔁 Syncing / Real-time Behavior
+From the first version:
+All data is stored centrally in Supabase.
+When a user logs a workout (worked/missed):
+Their workouts record updates.
+For a missed day, all relevant pairs.pot_balance values are updated immediately.
+Their partners should see accurate pots and weekly status when they reload the app.
+You may implement:
+Either Supabase real-time subscriptions for pairs and/or workouts, or
+Simple periodic refetch (e.g., revalidate data on page load/navigation).
+Choose a method and explain.
+📁 Project Structure (Next.js App Router)
+Propose a structure like:
+app/
+page.tsx → Home (daily swipe)
+buddies/page.tsx → Buddies & pots overview
+dashboard/page.tsx → Weekly summary
+auth/login, auth/signup, etc.
+components/
+SwipeCard.tsx
+BuddyList.tsx
+WeekSummary.tsx
+etc.
+lib/
+supabaseClient.ts
+dateUtils.ts
+potLogic.ts
+types/
+shared TypeScript types for User, Pair, Workout, Settlement
+Define this before coding.
+🧪 Edge Cases & Constraints
+No duplicate workouts for (user, date).
+Handle time zones by storing dates in UTC but allowing local display.
+Decide and document:
+Can users edit past days?
+What happens if I add a new buddy mid-week?
+E.g., pot starts at 0 from that moment, but my previous missed/worked days don’t retroactively affect that pair.
+If you implement account deletion or leaving a pair, briefly explain how pots/settlements behave.
+Constraints recap:
+Avoid Redux/Zustand unless absolutely necessary.
+Use Tailwind for styling; no extra CSS frameworks.
+Keep components small, readable, and well-commented.
+📝 Deliverables & Order of Work
+Follow this order:
+Confirm understanding of the requirements in your own words.
+Design and output the database schema with SQL and ERD explanation.
+Propose the Next.js folder structure.
+Describe the main React components and their responsibilities.
+Implement:
+Auth (signup, login, logout).
+Buddy/pair creation & listing.
+Daily swipe page (global workout status per user).
+Pot update logic (all pots updated on missed day).
+Weekly evaluation & settlements per pair.
+Weekly summary dashboard.
+Comment and explain all non-trivial logic, especially:
+How global workouts feed into per-pair settlements.
+How and when you run weekly evaluation.
+Now begin by confirming you understand this project and then generate the database schema and ERD explanation first, before writing any React/Next.js code.
