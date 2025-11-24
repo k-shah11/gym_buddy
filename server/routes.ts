@@ -2,7 +2,6 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, setupFallbackAuthRoutes, isAuthenticated } from "./replitAuth";
-import { initializeDatabase } from "./initDb";
 import { insertPairSchema, insertWorkoutSchema } from "@shared/schema";
 
 // Helper to get Monday of a given date's week
@@ -19,22 +18,9 @@ function getUserId(req: Request): string {
   return (req.user as any)?.claims?.sub;
 }
 
-let dbInitialized = false;
-
-async function ensureDbInitialized() {
-  if (dbInitialized) return;
-  try {
-    await initializeDatabase();
-    dbInitialized = true;
-  } catch (error) {
-    // Don't throw - just log and continue
-    console.warn("[DB] Schema initialization skipped:", error);
-  }
-}
-
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize database schema in background (non-blocking)
-  ensureDbInitialized().catch(console.error);
+  // Initialize database schema in background AFTER server starts
+  // Don't block startup at all
   
   // Auth middleware
   await setupAuth(app);
