@@ -34,59 +34,66 @@ export async function initializeDatabase() {
         console.log("[DB] Creating schema...");
         
         const statements = [
+          `CREATE TABLE IF NOT EXISTS sessions (
+            sid VARCHAR PRIMARY KEY,
+            sess JSONB NOT NULL,
+            expire TIMESTAMP NOT NULL
+          )`,
+          
           `CREATE TABLE IF NOT EXISTS users (
             id VARCHAR PRIMARY KEY,
             email VARCHAR NOT NULL UNIQUE,
-            first_name VARCHAR,
-            last_name VARCHAR,
-            profile_image_url VARCHAR,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            "firstName" VARCHAR,
+            "lastName" VARCHAR,
+            "profileImageUrl" VARCHAR,
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )`,
           
           `CREATE TABLE IF NOT EXISTS pairs (
             id VARCHAR PRIMARY KEY,
-            user_a_id VARCHAR NOT NULL REFERENCES users(id),
-            user_b_id VARCHAR NOT NULL REFERENCES users(id),
-            pot_balance INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            "userAId" VARCHAR NOT NULL REFERENCES users(id),
+            "userBId" VARCHAR NOT NULL REFERENCES users(id),
+            "potBalance" INTEGER DEFAULT 0,
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )`,
           
           `CREATE TABLE IF NOT EXISTS workouts (
             id VARCHAR PRIMARY KEY,
-            user_id VARCHAR NOT NULL REFERENCES users(id),
+            "userId" VARCHAR NOT NULL REFERENCES users(id),
             date DATE NOT NULL,
             status VARCHAR NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )`,
           
           `CREATE TABLE IF NOT EXISTS settlements (
             id VARCHAR PRIMARY KEY,
-            pair_id VARCHAR NOT NULL REFERENCES pairs(id),
-            week_start_date DATE NOT NULL,
-            winner_user_id VARCHAR NOT NULL REFERENCES users(id),
-            loser_user_id VARCHAR NOT NULL REFERENCES users(id),
+            "pairId" VARCHAR NOT NULL REFERENCES pairs(id),
+            "weekStartDate" DATE NOT NULL,
+            "winnerUserId" VARCHAR NOT NULL REFERENCES users(id),
+            "loserUserId" VARCHAR NOT NULL REFERENCES users(id),
             amount INTEGER NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )`,
           
           `CREATE TABLE IF NOT EXISTS buddy_invitations (
             id VARCHAR PRIMARY KEY,
-            inviter_user_id VARCHAR NOT NULL REFERENCES users(id),
-            invitee_email VARCHAR NOT NULL,
-            invitee_name VARCHAR,
+            "inviterUserId" VARCHAR NOT NULL REFERENCES users(id),
+            "inviteeEmail" VARCHAR NOT NULL,
+            "inviteeName" VARCHAR,
             status VARCHAR DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            accepted_at TIMESTAMP
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "acceptedAt" TIMESTAMP
           )`,
           
-          `CREATE INDEX IF NOT EXISTS idx_workouts_user_date ON workouts(user_id, date)`,
-          `CREATE INDEX IF NOT EXISTS idx_settlements_pair ON settlements(pair_id)`,
-          `CREATE INDEX IF NOT EXISTS idx_pairs_users ON pairs(user_a_id, user_b_id)`,
-          `CREATE INDEX IF NOT EXISTS idx_buddy_invitations_email ON buddy_invitations(invitee_email)`,
+          `CREATE INDEX IF NOT EXISTS idx_workouts_user_date ON workouts("userId", date)`,
+          `CREATE INDEX IF NOT EXISTS idx_settlements_pair ON settlements("pairId")`,
+          `CREATE INDEX IF NOT EXISTS idx_pairs_users ON pairs("userAId", "userBId")`,
+          `CREATE INDEX IF NOT EXISTS idx_buddy_invitations_email ON buddy_invitations("inviteeEmail")`,
+          `CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON sessions(expire)`,
         ];
 
         for (const statement of statements) {
