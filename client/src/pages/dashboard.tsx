@@ -12,6 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { Workout } from "@shared/schema";
 
 interface WeekData {
@@ -22,6 +23,7 @@ interface WeekData {
 
 export default function DashboardPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedDay, setSelectedDay] = useState<{ weekStart: string; dayIndex: number } | null>(null);
 
   // Fetch workout history
@@ -151,23 +153,32 @@ export default function DashboardPage() {
   
   const currentStreak = streak === 0 ? '0 weeks' : streak === 1 ? '1 week' : `${streak}+ weeks`;
 
-  // Calculate missed logging days (days with no workout entry, only completed past days - excludes today)
+  // Calculate missed logging days (days with no workout entry, only from user's join date to yesterday)
+  // Use local date for "today" since workouts are logged in local time
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
+  // Get user's join date as YYYY-MM-DD string using UTC to match server timestamp
+  const userJoinDate = user?.createdAt 
+    ? new Date(user.createdAt).toISOString().slice(0, 10)
+    : null;
+  
   let missedLoggingDays = 0;
-  weeksData.forEach((week) => {
-    const days = getWeekDays(week);
-    days.forEach((status, dayIndex) => {
-      if (status === null) {
-        // Check if this day is in the past (before today, not including today)
-        const dayDate = getDateForDay(week.weekStartDate, dayIndex);
-        if (dayDate < todayStr) {
-          missedLoggingDays++;
+  // Only calculate if we have user data (avoid counting while auth is loading)
+  if (userJoinDate) {
+    weeksData.forEach((week) => {
+      const days = getWeekDays(week);
+      days.forEach((status, dayIndex) => {
+        if (status === null) {
+          const dayDate = getDateForDay(week.weekStartDate, dayIndex);
+          // Only count if: day is before today AND day is on or after user's join date
+          if (dayDate < todayStr && dayDate >= userJoinDate) {
+            missedLoggingDays++;
+          }
         }
-      }
+      });
     });
-  });
+  }
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
