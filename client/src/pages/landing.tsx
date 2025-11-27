@@ -15,7 +15,7 @@ export default function LandingPage() {
           </div>
           
           <h1 className="text-4xl md:text-6xl font-heading font-bold text-foreground">
-            Gym Buddy Accountability
+            gymmy-buddy
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
