@@ -5,12 +5,24 @@ import { setupAuth, setupFallbackAuthRoutes, isAuthenticated } from "./replitAut
 import { insertPairSchema, insertWorkoutSchema } from "@shared/schema";
 
 // Helper to get Monday of a given date's week
-function getWeekStartDate(date: Date): string {
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+function getWeekStartDate(dateInput: Date | string): string {
+  let dateStr: string;
+  if (typeof dateInput === 'string') {
+    dateStr = dateInput;
+  } else {
+    dateStr = dateInput.toISOString().split('T')[0];
+  }
+  
+  // Parse date string to avoid timezone issues
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayOfWeek = date.getDay();
+  const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
   const monday = new Date(date);
   monday.setDate(diff);
-  return monday.toISOString().split('T')[0];
+  
+  const result = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+  return `${result.getFullYear()}-${String(result.getMonth() + 1).padStart(2, '0')}-${String(result.getDate()).padStart(2, '0')}`;
 }
 
 // Helper to get user ID from request

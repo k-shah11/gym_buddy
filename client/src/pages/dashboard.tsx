@@ -58,7 +58,17 @@ export default function DashboardPage() {
     },
   });
 
-  // Helper to get day of week (0 = Monday, 6 = Sunday)
+  // Helper to get day of week (0 = Monday, 6 = Sunday) and week start date
+  const getWeekStartDate = (dateStr: string): string => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    const diff = date.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(date);
+    monday.setDate(diff);
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
+
   const getDayOfWeek = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
