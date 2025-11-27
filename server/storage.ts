@@ -364,13 +364,16 @@ export class DatabaseStorage implements IStorage {
       ? new Date(lastSettlements[0].weekStartDate)
       : pair.createdAt;
 
-    // Count user's missed workouts since reference date
+    // Count BOTH users' missed workouts since reference date
     const missedWorkouts = await db
       .select({ count: count() })
       .from(workouts)
       .where(
         and(
-          eq(workouts.userId, userId),
+          or(
+            eq(workouts.userId, pair.userAId),
+            eq(workouts.userId, pair.userBId)
+          ),
           eq(workouts.status, "missed"),
           gte(workouts.date, startDate.toISOString().split('T')[0])
         )
