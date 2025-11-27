@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import poohWorkedVideo from "@assets/generated_videos/slim_fit_pooh_doing_curls.mp4";
-import poohMissedVideo from "@assets/generated_videos/crying_chubby_pooh_with_tears.mp4";
-import poohNeutral from "@assets/generated_images/neutral_curious_pooh_bear.png";
+import blobWorkedVideo from "@assets/generated_videos/blob_doing_curls_bulging_biceps.mp4";
+import blobMissedVideo from "@assets/generated_videos/sad_blob_crying_belly_out.mp4";
+import blobNeutral from "@assets/generated_images/cute_blob_gym_mascot.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 
@@ -24,10 +24,10 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
     setTimeout(() => setIsAnimating(false), 600);
   };
 
-  const getPoohMedia = () => {
-    if (status === 'worked') return { type: 'video' as const, src: poohWorkedVideo };
-    if (status === 'missed') return { type: 'video' as const, src: poohMissedVideo };
-    return { type: 'image' as const, src: poohNeutral };
+  const getBlobMedia = () => {
+    if (status === 'worked') return { type: 'video' as const, src: blobWorkedVideo };
+    if (status === 'missed') return { type: 'video' as const, src: blobMissedVideo };
+    return { type: 'image' as const, src: blobNeutral };
   };
 
   const getMessage = () => {
@@ -49,9 +49,9 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
         </div>
 
         <div className={`relative transition-transform duration-500 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
-          {getPoohMedia().type === 'video' ? (
+          {getBlobMedia().type === 'video' ? (
             <video 
-              src={getPoohMedia().src}
+              src={getBlobMedia().src}
               autoPlay
               loop
               muted
@@ -61,8 +61,8 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
             />
           ) : (
             <img 
-              src={getPoohMedia().src}
-              alt="Pooh avatar" 
+              src={getBlobMedia().src}
+              alt="Blob mascot" 
               className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover"
               data-testid="img-avatar"
             />
