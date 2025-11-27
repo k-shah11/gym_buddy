@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import poohWorkedVideo from "@assets/generated_videos/pooh_doing_curls_belly_shrinking.mp4";
+import poohWorkedVideo from "@assets/generated_videos/slim_fit_pooh_doing_curls.mp4";
 import poohMissedVideo from "@assets/generated_videos/crying_chubby_pooh_with_tears.mp4";
 import poohNeutral from "@assets/generated_images/neutral_curious_pooh_bear.png";
 import { useState } from "react";

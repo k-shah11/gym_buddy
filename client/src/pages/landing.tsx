@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import poohMascot from "@assets/generated_images/neutral_curious_pooh_bear.png";
+import poohMascot from "@assets/generated_images/neutral_pooh_white_background.png";
 import honeyPot from "@assets/generated_images/honey_pot_icon.png";
 import { Users, Target, Trophy } from "lucide-react";
 
@@ -11,7 +11,7 @@ export default function LandingPage() {
       <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 md:py-20">
         <div className="text-center space-y-4 sm:space-y-6 mb-8 sm:mb-12">
           <div className="flex justify-center">
-            <img src={poohMascot} alt="Gym Buddy Pooh" className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 bg-background rounded-full" />
+            <img src={poohMascot} alt="Gym Buddy Pooh" className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40" />
           </div>
           
           <h1 className="text-3xl sm:text-4xl md:text-6xl font-heading font-bold text-foreground">
