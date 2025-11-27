@@ -154,25 +154,25 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground">
           Weekly Summary
         </h1>
 
-        <Card className="rounded-2xl p-6 border-card-border">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="rounded-2xl p-4 sm:p-6 border-card-border">
+          <div className="grid grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">
+              <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-1">
                 Total Workouts
               </p>
-              <p className="text-4xl font-bold text-foreground" data-testid="text-total-workouts">
+              <p className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-total-workouts">
                 {totalWorkouts}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">
+              <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-1">
                 Current Streak
               </p>
-              <p className="text-4xl font-bold text-foreground" data-testid="text-current-streak">
+              <p className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-current-streak">
                 {currentStreak}
               </p>
             </div>

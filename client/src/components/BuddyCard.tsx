@@ -46,41 +46,44 @@ export default function BuddyCard({
 
   return (
     <Card 
-      className="rounded-2xl p-5 border-card-border hover-elevate cursor-pointer"
+      className="rounded-2xl p-4 sm:p-5 border-card-border hover-elevate cursor-pointer"
       onClick={onClick}
       data-testid={`card-buddy-${buddyName.toLowerCase().replace(/\s+/g, '-')}`}
     >
-      <div className="flex items-center justify-between gap-4">
+      {/* Mobile: stacked layout, Desktop: horizontal layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        {/* Top section: Avatar and info */}
         <div className="flex items-center gap-3 min-w-0">
-          <Avatar className="h-12 w-12 ring-2 ring-card-border" data-testid="avatar-buddy">
+          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 ring-2 ring-card-border flex-shrink-0" data-testid="avatar-buddy">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={buddyName} />}
-            <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
+            <AvatarFallback className="font-semibold text-sm sm:text-base">{initials}</AvatarFallback>
           </Avatar>
           
-          <div className="min-w-0">
-            <h3 className="font-semibold text-base text-foreground truncate" data-testid="text-buddy-name">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-sm sm:text-base text-foreground truncate" data-testid="text-buddy-name">
               {buddyName}
             </h3>
-            <p className="text-sm text-muted-foreground truncate" data-testid="text-buddy-email">
+            <p className="text-xs sm:text-sm text-muted-foreground truncate" data-testid="text-buddy-email">
               {buddyEmail}
             </p>
             {connectedAt && (
-              <p className="text-xs text-muted-foreground mt-1" data-testid="text-connected-date">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1" data-testid="text-connected-date">
                 Connected {formatDate(connectedAt)}
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <img src={honeyPot} alt="Honey pot" className="w-8 h-8" data-testid="img-honey-pot" />
-            <span className="text-2xl font-bold tabular-nums text-foreground" data-testid="text-pot-balance">
+        {/* Bottom section on mobile / Right section on desktop: Pot and badge */}
+        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 flex-shrink-0 pl-13 sm:pl-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <img src={honeyPot} alt="Honey pot" className="w-6 h-6 sm:w-8 sm:h-8" data-testid="img-honey-pot" />
+            <span className="text-xl sm:text-2xl font-bold tabular-nums text-foreground" data-testid="text-pot-balance">
               ₹{potBalance}
             </span>
           </div>
 
-          <Badge variant={status.variant} className="whitespace-nowrap" data-testid="badge-status">
+          <Badge variant={status.variant} className="whitespace-nowrap text-xs" data-testid="badge-status">
             {status.text}
           </Badge>
         </div>

@@ -168,14 +168,27 @@ export default function BuddiesPage() {
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground">
             Gym Buddies
           </h1>
           <div className="flex gap-2">
             <Button
               variant="outline"
+              size="icon"
+              className="sm:hidden"
+              onClick={() => recalcPosMutation.mutate()}
+              disabled={recalcPosMutation.isPending}
+              data-testid="button-recalculate-pots-mobile"
+              title="Reset pot amounts"
+              aria-label="Reset pots"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
               size="sm"
+              className="hidden sm:flex"
               onClick={() => recalcPosMutation.mutate()}
               disabled={recalcPosMutation.isPending}
               data-testid="button-recalculate-pots"
@@ -198,13 +211,13 @@ export default function BuddiesPage() {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Pending Invitations</h2>
             {receivedInvitations.map((invitation) => (
-              <Card key={invitation.id} className="rounded-2xl p-4 border-card-border">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{invitation.inviter.email}</p>
-                    <p className="text-sm text-muted-foreground">wants you as a gym buddy</p>
+              <Card key={invitation.id} className="rounded-2xl p-3 sm:p-4 border-card-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm sm:text-base truncate">{invitation.inviter.email}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">wants you as a gym buddy</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 self-end sm:self-auto">
                     <Button
                       size="sm"
                       variant="default"
@@ -217,12 +230,13 @@ export default function BuddiesPage() {
                       Accept
                     </Button>
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
                       onClick={() => handleDeleteInvitation(invitation.id)}
                       disabled={deleteInvitationMutation.isPending}
                       className="text-destructive hover:text-destructive hover-elevate active-elevate-2"
                       data-testid="button-delete-received-invitation"
+                      aria-label="Delete invitation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -237,19 +251,19 @@ export default function BuddiesPage() {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Invitations Sent</h2>
             {sentInvitations.map((invitation) => (
-              <Card key={invitation.id} className="rounded-2xl p-4 border-card-border">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{invitation.inviteeEmail}</p>
+              <Card key={invitation.id} className="rounded-2xl p-3 sm:p-4 border-card-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-foreground text-sm sm:text-base truncate">{invitation.inviteeEmail}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
+                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs sm:text-sm text-muted-foreground truncate">
                         {invitation.invitee ? "Signed up • Awaiting acceptance" : "Invitation sent"}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="whitespace-nowrap">
+                  <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
+                    <Badge variant="outline" className="whitespace-nowrap text-xs">
                       Pending
                     </Badge>
                     <Button
@@ -259,6 +273,7 @@ export default function BuddiesPage() {
                       disabled={deleteInvitationMutation.isPending}
                       className="text-destructive hover:text-destructive hover-elevate active-elevate-2"
                       data-testid="button-delete-sent-invitation"
+                      aria-label="Delete invitation"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

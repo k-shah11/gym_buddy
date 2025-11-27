@@ -27,7 +27,12 @@ export default function AddBuddyDialog({ onAddBuddy }: AddBuddyDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="rounded-xl hover-elevate active-elevate-2" data-testid="button-add-buddy">
+        <Button size="icon" className="sm:hidden rounded-xl hover-elevate active-elevate-2" data-testid="button-add-buddy-mobile" aria-label="Add buddy">
+          <UserPlus className="w-5 h-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogTrigger asChild>
+        <Button size="default" className="hidden sm:flex rounded-xl hover-elevate active-elevate-2" data-testid="button-add-buddy">
           <UserPlus className="w-5 h-5 mr-2" />
           Add Buddy
         </Button>
