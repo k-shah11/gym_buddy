@@ -360,17 +360,25 @@ export class DatabaseStorage implements IStorage {
       .limit(1);
 
     // Use last settlement date or pair creation date as start point
-    const startDate = lastSettlements.length > 0 
-      ? new Date(lastSettlements[0].weekStartDate)
-      : pair.createdAt;
+    // Ensure we have a proper Date object
+    let startDate: Date;
+    if (lastSettlements.length > 0) {
+      startDate = new Date(lastSettlements[0].weekStartDate);
+    } else {
+      // pair.createdAt might be a Date or string, handle both
+      startDate = pair.createdAt instanceof Date 
+        ? pair.createdAt 
+        : new Date(pair.createdAt);
+    }
 
-    // Format date in local timezone to avoid UTC date shift issues
-    const formatLocalDate = (date: Date) => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    // Format date as YYYY-MM-DD using UTC to avoid timezone issues
+    // This ensures consistent comparison with workout dates stored as strings
+    const formatDateUTC = (date: Date) => {
+      return date.toISOString().split('T')[0];
     };
+
+    const startDateStr = formatDateUTC(startDate);
+    console.log(`[Recalculate] Pair ${pairId}: startDate=${startDateStr}, createdAt=${pair.createdAt}`);
 
     // Count BOTH users' missed workouts since reference date
     const missedWorkouts = await db
@@ -383,12 +391,13 @@ export class DatabaseStorage implements IStorage {
             eq(workouts.userId, pair.userBId)
           ),
           eq(workouts.status, "missed"),
-          gte(workouts.date, formatLocalDate(startDate))
+          gte(workouts.date, startDateStr)
         )
       );
 
     const missCount = missedWorkouts[0]?.count || 0;
     const correctBalance = missCount * 20;
+    console.log(`[Recalculate] Pair ${pairId}: missCount=${missCount}, correctBalance=${correctBalance}`);
 
     // Update pot to correct balance
     const [updatedPair] = await db
