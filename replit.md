@@ -40,6 +40,17 @@ Preferred communication style: Simple, everyday language.
 - Elevation system using box shadows (elevate-1, elevate-2)
 - Responsive spacing primitives (2, 4, 6, 8, 12, 16)
 
+**Responsive Design:**
+- Mobile-first approach using Tailwind sm: breakpoint (640px+)
+- Mobile layouts: Stacked vertically, icon-only buttons, compact spacing
+- Desktop layouts: Horizontal grids, text buttons, expanded spacing
+- Key responsive components:
+  - WeekGrid: Stacks week label + count on top, days grid below on mobile; horizontal on desktop
+  - BuddyCard: Avatar/info on top, pot/badge below on mobile; horizontal on desktop
+  - AddBuddyDialog: Icon-only trigger on mobile, text button on desktop
+  - Invitation cards: Stacked layout on mobile, horizontal on desktop
+- All icon-only buttons have aria-labels for accessibility
+
 ### Backend Architecture
 
 **Server Framework:** Express.js with TypeScript running on Node.js
