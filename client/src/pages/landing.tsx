@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import blobMascot from "@assets/generated_images/cute_blob_gym_mascot.png";
+import blobMascot from "@assets/generated_images/blob_mascot_cream_background.png";
 import honeyPot from "@assets/generated_images/honey_pot_icon.png";
 import { Users, Target, Trophy } from "lucide-react";
 

@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import blobWorkedVideo from "@assets/generated_videos/blob_doing_curls_bulging_biceps.mp4";
 import blobMissedVideo from "@assets/generated_videos/sad_blob_crying_belly_out.mp4";
-import blobNeutral from "@assets/generated_images/cute_blob_gym_mascot.png";
+import blobNeutral from "@assets/generated_images/blob_mascot_cream_background.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 
