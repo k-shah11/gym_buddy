@@ -283,12 +283,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate.toISOString().split('T')[0]
       );
       
-      // Group by week
+      // Group by week - include current week and past weeks
       const weekMap = new Map<string, any>();
       
       for (let i = 0; i < weeks; i++) {
         const weekStart = new Date(endDate);
-        weekStart.setDate(weekStart.getDate() - ((i + 1) * 7));
+        weekStart.setDate(weekStart.getDate() - (i * 7)); // i=0 is current week
         const weekStartStr = getWeekStartDate(weekStart);
         
         weekMap.set(weekStartStr, {
@@ -310,7 +310,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      const weeksArray = Array.from(weekMap.values()).reverse();
+      // Sort weeks from newest to oldest (This Week first)
+      const weeksArray = Array.from(weekMap.values()).sort((a, b) => 
+        b.weekStartDate.localeCompare(a.weekStartDate)
+      );
       
       // Disable HTTP caching to ensure fresh data is always returned
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');

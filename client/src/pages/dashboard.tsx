@@ -69,7 +69,12 @@ export default function DashboardPage() {
     return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
   };
 
-  const getDayOfWeek = (dateStr: string) => {
+  const getDayOfWeek = (dateInput: string | Date) => {
+    // Handle both string and Date inputs
+    const dateStr = typeof dateInput === 'string' 
+      ? dateInput.split('T')[0] // Handle ISO strings like "2025-11-24T00:00:00.000Z"
+      : dateInput.toISOString().split('T')[0];
+    
     const [year, month, day] = dateStr.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     const dayOfWeek = date.getDay();
@@ -81,8 +86,8 @@ export default function DashboardPage() {
     const days: Array<'worked' | 'missed' | null> = [null, null, null, null, null, null, null];
     
     weekData.workouts.forEach(workout => {
-      const dayIndex = getDayOfWeek(workout.date);
-      days[dayIndex] = workout.status;
+      const dayIndex = getDayOfWeek(workout.date as unknown as string);
+      days[dayIndex] = workout.status as 'worked' | 'missed';
     });
     
     return days;
