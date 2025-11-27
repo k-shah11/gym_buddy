@@ -98,15 +98,10 @@ function AppContent() {
       {isAuthenticated && <Navigation />}
       <main className={isAuthenticated ? "flex-1 pb-20 md:pb-0" : "flex-1"}>
         <Switch>
-          {!isAuthenticated ? (
-            <Route path="/" component={LandingPage} />
-          ) : (
-            <>
-              <Route path="/" component={HomePage} />
-              <Route path="/buddies" component={BuddiesPage} />
-              <Route path="/dashboard" component={DashboardPage} />
-            </>
-          )}
+          {!isAuthenticated && <Route path="/" component={LandingPage} />}
+          {isAuthenticated && <Route path="/" component={HomePage} />}
+          {isAuthenticated && <Route path="/buddies" component={BuddiesPage} />}
+          {isAuthenticated && <Route path="/dashboard" component={DashboardPage} />}
           <Route component={NotFound} />
         </Switch>
       </main>
