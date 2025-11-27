@@ -239,6 +239,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only update pot balance if status actually changed
       const pairs = await storage.getUserPairs(userId);
       
+      // Helper to format date for comparison (YYYY-MM-DD)
+      const formatDateString = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
       if (previousStatus !== status) {
         // Status changed - determine pot adjustment
         let potAdjustment = 0;
@@ -254,10 +262,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           potAdjustment = 20;
         }
         
-        // Update all pair pots
+        // Update pots only for pairs where workout date is on or after connection date
         if (potAdjustment !== 0) {
           await Promise.all(
-            pairs.map(pair => storage.updatePotBalance(pair.id, potAdjustment))
+            pairs
+              .filter(pair => {
+                // Only update pot if workout is on or after the pair's connection date
+                const pairCreatedDate = formatDateString(new Date(pair.createdAt));
+                return date >= pairCreatedDate;
+              })
+              .map(pair => storage.updatePotBalance(pair.id, potAdjustment))
           );
         }
       }
