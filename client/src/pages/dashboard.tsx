@@ -136,8 +136,21 @@ export default function DashboardPage() {
 
   const totalWorkouts = weeksData.reduce((sum, week) => sum + week.workoutCount, 0);
   const weeksMetGoal = weeksData.filter(week => week.workoutCount >= 4).length;
-  const currentStreak = weeksData[0]?.workoutCount >= 4 && weeksData[1]?.workoutCount >= 4 ? '2+ weeks' : 
-                       weeksData[0]?.workoutCount >= 4 ? '1 week' : '0 weeks';
+  
+  // Calculate streak: count consecutive weeks with >= 4 workouts from the most recent goal completion
+  let streak = 0;
+  let foundFirstGoalMet = false;
+  for (let i = 0; i < weeksData.length; i++) {
+    if (weeksData[i].workoutCount >= 4) {
+      foundFirstGoalMet = true;
+      streak++;
+    } else if (foundFirstGoalMet) {
+      // Found a goal week, but now hit a non-goal week, so break
+      break;
+    }
+  }
+  
+  const currentStreak = streak === 0 ? '0 weeks' : streak === 1 ? '1 week' : `${streak}+ weeks`;
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
