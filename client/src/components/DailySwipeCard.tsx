@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import poohWorked from "@assets/Gemini_Generated_Image_back3oback3oback_1764257249750.png";
-import poohMissed from "@assets/generated_images/sad_crying_chubby_pooh_bear.png";
+import poohWorkedVideo from "@assets/generated_videos/pooh_doing_curls_belly_shrinking.mp4";
+import poohMissedVideo from "@assets/generated_videos/crying_chubby_pooh_with_tears.mp4";
 import poohNeutral from "@assets/generated_images/neutral_curious_pooh_bear.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
@@ -24,10 +24,10 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
     setTimeout(() => setIsAnimating(false), 600);
   };
 
-  const getPoohImage = () => {
-    if (status === 'worked') return poohWorked;
-    if (status === 'missed') return poohMissed;
-    return poohNeutral;
+  const getPoohMedia = () => {
+    if (status === 'worked') return { type: 'video' as const, src: poohWorkedVideo };
+    if (status === 'missed') return { type: 'video' as const, src: poohMissedVideo };
+    return { type: 'image' as const, src: poohNeutral };
   };
 
   const getMessage = () => {
@@ -49,12 +49,24 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
         </div>
 
         <div className={`relative transition-transform duration-500 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
-          <img 
-            src={getPoohImage()} 
-            alt="Pooh avatar" 
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20"
-            data-testid="img-avatar"
-          />
+          {getPoohMedia().type === 'video' ? (
+            <video 
+              src={getPoohMedia().src}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover"
+              data-testid="video-avatar"
+            />
+          ) : (
+            <img 
+              src={getPoohMedia().src}
+              alt="Pooh avatar" 
+              className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover"
+              data-testid="img-avatar"
+            />
+          )}
         </div>
 
         {!status && (
