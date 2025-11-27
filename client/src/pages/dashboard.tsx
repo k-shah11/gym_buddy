@@ -46,10 +46,13 @@ export default function DashboardPage() {
         status: worked ? 'worked' : 'missed',
       });
     },
-    onSuccess: () => {
-      queryClient.refetchQueries({ queryKey: ['/api/workouts/history'] });
-      queryClient.refetchQueries({ queryKey: ['/api/stats'] });
-      queryClient.refetchQueries({ queryKey: ['/api/buddies'] });
+    onSuccess: async () => {
+      // Wait for all queries to refetch before closing dialog
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['/api/workouts/history'] }),
+        queryClient.refetchQueries({ queryKey: ['/api/stats'] }),
+        queryClient.refetchQueries({ queryKey: ['/api/buddies'] }),
+      ]);
       setSelectedDay(null);
       toast({ title: "Workout logged successfully" });
     },
