@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import DailySwipeCard from "@/components/DailySwipeCard";
 import StatsCard from "@/components/StatsCard";
-import { Users, Coins, Mail, ChevronRight } from "lucide-react";
+import { Users, Coins, Mail, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,10 @@ import type { Workout } from "@shared/schema";
 export default function HomePage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const [retrospectiveDate, setRetrospectiveDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  
   const today = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -38,9 +42,10 @@ export default function HomePage() {
 
   // Log workout mutation
   const logWorkoutMutation = useMutation({
-    mutationFn: async (worked: boolean) => {
+    mutationFn: async ({ worked, date }: { worked: boolean; date?: string }) => {
       return await apiRequest('POST', '/api/workouts', {
         status: worked ? 'worked' : 'missed',
+        ...(date && { date }),
       });
     },
     onSuccess: () => {
@@ -84,7 +89,15 @@ export default function HomePage() {
   }, []);
 
   const handleSwipe = (worked: boolean) => {
-    logWorkoutMutation.mutate(worked);
+    logWorkoutMutation.mutate({ worked });
+  };
+
+  const handleRetrospectiveLog = (worked: boolean) => {
+    logWorkoutMutation.mutate({ worked, date: retrospectiveDate });
+    toast({
+      title: "Workout logged",
+      description: `${worked ? 'Worked out' : 'Missed'} on ${new Date(retrospectiveDate).toLocaleDateString()}`,
+    });
   };
 
   if (workoutLoading) {
@@ -136,6 +149,46 @@ export default function HomePage() {
           onSwipe={handleSwipe}
           initialStatus={todayWorkout?.status || null}
         />
+
+        <Card className="rounded-2xl p-6 border-card-border bg-card">
+          <div className="flex items-center gap-3 mb-4">
+            <Calendar className="w-5 h-5 text-muted-foreground" />
+            <h3 className="font-semibold text-foreground">Log Past Workout</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Need to log a workout from a previous day?</p>
+          
+          <div className="flex flex-col gap-4">
+            <input
+              type="date"
+              value={retrospectiveDate}
+              onChange={(e) => setRetrospectiveDate(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground text-sm"
+              data-testid="input-retrospective-date"
+            />
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 hover-elevate active-elevate-2"
+                onClick={() => handleRetrospectiveLog(true)}
+                disabled={logWorkoutMutation.isPending}
+                data-testid="button-log-worked"
+              >
+                {logWorkoutMutation.isPending ? "Logging..." : "Logged Workout"}
+              </Button>
+              <Button
+                variant="default"
+                className="flex-1 hover-elevate active-elevate-2"
+                onClick={() => handleRetrospectiveLog(false)}
+                disabled={logWorkoutMutation.isPending}
+                data-testid="button-log-missed"
+              >
+                {logWorkoutMutation.isPending ? "Logging..." : "Missed Workout"}
+              </Button>
+            </div>
+          </div>
+        </Card>
         
         <div className="grid grid-cols-2 gap-4">
           <StatsCard
