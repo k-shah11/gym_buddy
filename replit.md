@@ -63,8 +63,7 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/workouts/history` - Fetch weekly workout data
 
 **Authentication Strategy:**
-- Primary: Replit Auth using OpenID Connect (OIDC) with passport.js
-- Fallback: Custom email/password auth for non-Replit environments (e.g., Railway)
+- Replit Auth using OpenID Connect (OIDC) with passport.js
 - Session storage in PostgreSQL using connect-pg-simple
 - User data synced from OIDC claims to database
 
