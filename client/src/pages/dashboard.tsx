@@ -1,6 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import WeekGrid from "@/components/WeekGrid";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import type { Workout } from "@shared/schema";
 
 interface WeekData {
@@ -10,6 +21,9 @@ interface WeekData {
 }
 
 export default function DashboardPage() {
+  const { toast } = useToast();
+  const [selectedDay, setSelectedDay] = useState<{ weekStart: string; dayIndex: number } | null>(null);
+
   // Fetch workout history
   const { data: weeksData = [], isLoading } = useQuery<WeekData[]>({
     queryKey: ['/api/workouts/history'],
@@ -22,11 +36,31 @@ export default function DashboardPage() {
     },
   });
 
+  // Log workout mutation
+  const logWorkoutMutation = useMutation({
+    mutationFn: async ({ date, worked }: { date: string; worked: boolean }) => {
+      return await apiRequest('POST', '/api/workouts', {
+        date,
+        status: worked ? 'worked' : 'missed',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/workouts/history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      setSelectedDay(null);
+      toast({ title: "Workout logged successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to log workout", variant: "destructive" });
+    },
+  });
+
   // Helper to get day of week (0 = Monday, 6 = Sunday)
   const getDayOfWeek = (dateStr: string) => {
     const date = new Date(dateStr);
     const day = date.getDay();
-    return day === 0 ? 6 : day - 1; // Convert Sunday from 0 to 6, shift others down
+    return day === 0 ? 6 : day - 1;
   };
 
   // Convert workouts to 7-day array
@@ -39,6 +73,21 @@ export default function DashboardPage() {
     });
     
     return days;
+  };
+
+  // Get date for a given day in week
+  const getDateForDay = (weekStartDate: string, dayIndex: number) => {
+    const date = new Date(weekStartDate);
+    date.setDate(date.getDate() + dayIndex);
+    return date.toISOString().split('T')[0];
+  };
+
+  // Get current status for selected day
+  const getSelectedDayStatus = () => {
+    if (!selectedDay) return null;
+    const week = weeksData.find(w => w.weekStartDate === selectedDay.weekStart);
+    if (!week) return null;
+    return getWeekDays(week)[selectedDay.dayIndex];
   };
 
   // Get week label
@@ -117,11 +166,59 @@ export default function DashboardPage() {
                 weekLabel={getWeekLabel(week.weekStartDate, index)}
                 days={getWeekDays(week)}
                 workoutCount={week.workoutCount}
+                onDayClick={(dayIndex) => setSelectedDay({ weekStart: week.weekStartDate, dayIndex })}
               />
             ))
           )}
         </div>
       </div>
+
+      <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDay && (() => {
+                const date = getDateForDay(selectedDay.weekStart, selectedDay.dayIndex);
+                return `Log workout for ${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
+              })()}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Current status: {getSelectedDayStatus() ? (getSelectedDayStatus() === 'worked' ? 'Worked out' : 'Missed') : 'Not logged'}
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (selectedDay) {
+                  const date = getDateForDay(selectedDay.weekStart, selectedDay.dayIndex);
+                  logWorkoutMutation.mutate({ date, worked: true });
+                }
+              }}
+              disabled={logWorkoutMutation.isPending}
+              data-testid="button-log-worked"
+            >
+              {logWorkoutMutation.isPending ? "Logging..." : "Logged Workout"}
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedDay) {
+                  const date = getDateForDay(selectedDay.weekStart, selectedDay.dayIndex);
+                  logWorkoutMutation.mutate({ date, worked: false });
+                }
+              }}
+              disabled={logWorkoutMutation.isPending}
+              data-testid="button-log-missed"
+            >
+              {logWorkoutMutation.isPending ? "Logging..." : "Missed Workout"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
