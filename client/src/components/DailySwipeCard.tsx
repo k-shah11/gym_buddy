@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import bearHappy from "@assets/generated_images/happy_celebrating_bear_avatar.png";
-import bearSad from "@assets/generated_images/sad_crying_bear_avatar.png";
-import bearNeutral from "@assets/generated_images/neutral_calm_bear_avatar.png";
+import poohWorked from "@assets/Gemini_Generated_Image_back3oback3oback_1764257249750.png";
+import poohMissed from "@assets/generated_images/sad_crying_chubby_pooh_bear.png";
+import poohNeutral from "@assets/generated_images/neutral_curious_pooh_bear.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 
@@ -24,10 +24,10 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
     setTimeout(() => setIsAnimating(false), 600);
   };
 
-  const getBearImage = () => {
-    if (status === 'worked') return bearHappy;
-    if (status === 'missed') return bearSad;
-    return bearNeutral;
+  const getPoohImage = () => {
+    if (status === 'worked') return poohWorked;
+    if (status === 'missed') return poohMissed;
+    return poohNeutral;
   };
 
   const getMessage = () => {
@@ -50,8 +50,8 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
 
         <div className={`relative transition-transform duration-500 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
           <img 
-            src={getBearImage()} 
-            alt="Bear avatar" 
+            src={getPoohImage()} 
+            alt="Pooh avatar" 
             className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20"
             data-testid="img-avatar"
           />
