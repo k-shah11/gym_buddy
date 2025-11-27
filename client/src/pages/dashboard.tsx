@@ -30,10 +30,12 @@ export default function DashboardPage() {
     queryFn: async () => {
       const response = await fetch('/api/workouts/history?weeks=4', {
         credentials: 'include',
+        cache: 'no-store',
       });
       if (!response.ok) throw new Error('Failed to fetch workout history');
       return response.json();
     },
+    staleTime: 0,
   });
 
   // Log workout mutation
@@ -58,9 +60,10 @@ export default function DashboardPage() {
 
   // Helper to get day of week (0 = Monday, 6 = Sunday)
   const getDayOfWeek = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const day = date.getDay();
-    return day === 0 ? 6 : day - 1;
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    return dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   };
 
   // Convert workouts to 7-day array
