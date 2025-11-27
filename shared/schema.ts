@@ -20,21 +20,21 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
-  firstName: varchar("firstName"),
-  lastName: varchar("lastName"),
-  profileImageUrl: varchar("profileImageUrl"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Pairs table - represents buddy relationships with shared honey pots
 export const pairs = pgTable("pairs", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
-  userAId: varchar("userAId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  userBId: varchar("userBId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  potBalance: integer("potBalance").notNull().default(0), // in rupees/coins
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  userAId: varchar("user_a_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  userBId: varchar("user_b_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  potBalance: integer("pot_balance").notNull().default(0), // in rupees/coins
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   // Ensure the same two users can't have duplicate pairs (normalized: userA < userB)
   uniquePair: unique().on(table.userAId, table.userBId),
@@ -45,11 +45,11 @@ export const pairs = pgTable("pairs", {
 // Workouts table - stores global daily workout status per user
 export const workouts = pgTable("workouts", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("userId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   date: date("date").notNull(), // store in UTC
   status: text("status", { enum: ["worked", "missed"] }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
   // Ensure one workout status per user per date
   uniqueUserDate: unique().on(table.userId, table.date),
@@ -59,12 +59,12 @@ export const workouts = pgTable("workouts", {
 // Settlements table - records pot settlements when one person loses
 export const settlements = pgTable("settlements", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
-  pairId: varchar("pairId", { length: 255 }).notNull().references(() => pairs.id, { onDelete: "cascade" }),
-  weekStartDate: date("weekStartDate").notNull(), // Monday of the week
-  loserUserId: varchar("loserUserId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  winnerUserId: varchar("winnerUserId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  pairId: varchar("pair_id", { length: 255 }).notNull().references(() => pairs.id, { onDelete: "cascade" }),
+  weekStartDate: date("week_start_date").notNull(), // Monday of the week
+  loserUserId: varchar("loser_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  winnerUserId: varchar("winner_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(), // pot amount at time of settlement
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   // Prevent duplicate settlements for the same pair and week
   uniquePairWeek: unique().on(table.pairId, table.weekStartDate),
@@ -74,12 +74,12 @@ export const settlements = pgTable("settlements", {
 // Buddy Invitations table - stores pending invitations for users who haven't signed up yet
 export const buddyInvitations = pgTable("buddy_invitations", {
   id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
-  inviterUserId: varchar("inviterUserId", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
-  inviteeEmail: varchar("inviteeEmail").notNull(), // Email of person being invited
-  inviteeName: varchar("inviteeName"), // Name provided by inviter
+  inviterUserId: varchar("inviter_user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  inviteeEmail: varchar("invitee_email").notNull(), // Email of person being invited
+  inviteeName: varchar("invitee_name"), // Name provided by inviter
   status: text("status", { enum: ["pending", "accepted", "declined"] }).notNull().default("pending"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  acceptedAt: timestamp("acceptedAt"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
 }, (table) => ({
   // Prevent duplicate pending invitations for same inviter-email pair
   uniquePendingInvite: unique().on(table.inviterUserId, table.inviteeEmail),
