@@ -93,15 +93,27 @@ function AppContent() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <main className="flex-1">
+          <Switch>
+            <Route path="/" component={LandingPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {isAuthenticated && <Navigation />}
-      <main className={isAuthenticated ? "flex-1 pb-20 md:pb-0" : "flex-1"}>
+      <Navigation />
+      <main className="flex-1 pb-20 md:pb-0">
         <Switch>
-          {!isAuthenticated && <Route path="/" component={LandingPage} />}
-          {isAuthenticated && <Route path="/" component={HomePage} />}
-          {isAuthenticated && <Route path="/buddies" component={BuddiesPage} />}
-          {isAuthenticated && <Route path="/dashboard" component={DashboardPage} />}
+          <Route path="/" component={HomePage} />
+          <Route path="/buddies" component={BuddiesPage} />
+          <Route path="/dashboard" component={DashboardPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
