@@ -135,7 +135,6 @@ export default function DashboardPage() {
   }
 
   const totalWorkouts = weeksData.reduce((sum, week) => sum + week.workoutCount, 0);
-  const weeksMetGoal = weeksData.filter(week => week.workoutCount >= 4).length;
   
   // Calculate streak: count consecutive weeks with >= 4 workouts from the most recent goal completion
   let streak = 0;
@@ -160,21 +159,13 @@ export default function DashboardPage() {
         </h1>
 
         <Card className="rounded-2xl p-6 border-card-border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">
                 Total Workouts
               </p>
               <p className="text-4xl font-bold text-foreground" data-testid="text-total-workouts">
                 {totalWorkouts}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground uppercase tracking-wide mb-1">
-                Weeks with Goal Met
-              </p>
-              <p className="text-4xl font-bold text-primary" data-testid="text-weeks-goal-met">
-                {weeksMetGoal}/{weeksData.length}
               </p>
             </div>
             <div>
