@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import blobWorkedVideo from "@assets/generated_videos/happy_blob_doing_bicep_curls.mp4";
-import blobMissedVideo from "@assets/generated_videos/same_blob_crying_with_tears.mp4";
-import blobNeutral from "@assets/generated_images/blob_mascot_cream_background.png";
+import blobNeutral from "@assets/generated_images/clean_blob_neutral_dumbbells.png";
+import blobHappy from "@assets/generated_images/clean_blob_happy_celebrating.png";
+import blobSad from "@assets/generated_images/clean_blob_sad_crying.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 
@@ -24,10 +24,16 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
     setTimeout(() => setIsAnimating(false), 600);
   };
 
-  const getBlobMedia = () => {
-    if (status === 'worked') return { type: 'video' as const, src: blobWorkedVideo };
-    if (status === 'missed') return { type: 'video' as const, src: blobMissedVideo };
-    return { type: 'image' as const, src: blobNeutral };
+  const getBlobImage = () => {
+    if (status === 'worked') return blobHappy;
+    if (status === 'missed') return blobSad;
+    return blobNeutral;
+  };
+
+  const getAnimationClass = () => {
+    if (status === 'worked') return 'animate-bounce';
+    if (status === 'missed') return 'animate-pulse';
+    return '';
   };
 
   const getMessage = () => {
@@ -49,24 +55,12 @@ export default function DailySwipeCard({ date, onSwipe, initialStatus = null }: 
         </div>
 
         <div className={`relative transition-transform duration-500 ${isAnimating ? 'scale-110' : 'scale-100'}`}>
-          {getBlobMedia().type === 'video' ? (
-            <video 
-              src={getBlobMedia().src}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover"
-              data-testid="video-avatar"
-            />
-          ) : (
-            <img 
-              src={getBlobMedia().src}
-              alt="Blob mascot" 
-              className="w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover"
-              data-testid="img-avatar"
-            />
-          )}
+          <img 
+            src={getBlobImage()}
+            alt="Blob mascot" 
+            className={`w-32 h-32 md:w-40 md:h-40 rounded-full ring-4 ring-primary/20 object-cover ${getAnimationClass()}`}
+            data-testid="img-avatar"
+          />
         </div>
 
         {!status && (
