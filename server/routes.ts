@@ -299,6 +299,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const weeksArray = Array.from(weekMap.values()).reverse();
+      
+      // Disable HTTP caching to ensure fresh data is always returned
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       res.json(weeksArray);
     } catch (error) {
       console.error("Error fetching workout history:", error);
