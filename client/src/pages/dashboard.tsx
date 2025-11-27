@@ -158,9 +158,12 @@ export default function DashboardPage() {
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
-  // Get user's join date as YYYY-MM-DD string using UTC to match server timestamp
+  // Get user's join date as YYYY-MM-DD string using local timezone
   const userJoinDate = user?.createdAt 
-    ? new Date(user.createdAt).toISOString().slice(0, 10)
+    ? (() => {
+        const d = new Date(user.createdAt);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      })()
     : null;
   
   let missedLoggingDays = 0;

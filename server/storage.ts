@@ -371,13 +371,12 @@ export class DatabaseStorage implements IStorage {
         : new Date(pair.createdAt);
     }
 
-    // Format date as YYYY-MM-DD using UTC to avoid timezone issues
-    // This ensures consistent comparison with workout dates stored as strings
-    const formatDateUTC = (date: Date) => {
-      return date.toISOString().split('T')[0];
+    // Format date as YYYY-MM-DD using local timezone to match how workout dates are stored
+    const formatDateLocal = (date: Date) => {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     };
 
-    const startDateStr = formatDateUTC(startDate);
+    const startDateStr = formatDateLocal(startDate);
     console.log(`[Recalculate] Pair ${pairId}: startDate=${startDateStr}, createdAt=${pair.createdAt}`);
 
     // Count BOTH users' missed workouts since reference date
