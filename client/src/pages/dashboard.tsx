@@ -80,7 +80,8 @@ export default function DashboardPage() {
 
   // Get date for a given day in week
   const getDateForDay = (weekStartDate: string, dayIndex: number) => {
-    const date = new Date(weekStartDate);
+    const [year, month, day] = weekStartDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     date.setDate(date.getDate() + dayIndex);
     return date.toISOString().split('T')[0];
   };
