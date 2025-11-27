@@ -45,9 +45,9 @@ export default function DashboardPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/workouts/history'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.refetchQueries({ queryKey: ['/api/workouts/history'] });
+      queryClient.refetchQueries({ queryKey: ['/api/stats'] });
+      queryClient.refetchQueries({ queryKey: ['/api/buddies'] });
       setSelectedDay(null);
       toast({ title: "Workout logged successfully" });
     },
