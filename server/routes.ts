@@ -71,6 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           profileImageUrl: pair.buddyUser.profileImageUrl,
         },
         potBalance: pair.potBalance,
+        connectedAt: pair.createdAt,
       }));
       
       res.json(buddies);

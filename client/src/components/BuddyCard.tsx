@@ -9,6 +9,7 @@ interface BuddyCardProps {
   potBalance: number;
   weeklyStatus: 'both-on-track' | 'you-behind' | 'they-behind' | 'both-behind';
   avatarUrl?: string;
+  connectedAt?: string;
   onClick?: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function BuddyCard({
   potBalance, 
   weeklyStatus,
   avatarUrl,
+  connectedAt,
   onClick 
 }: BuddyCardProps) {
   const getStatusBadge = () => {
@@ -35,6 +37,12 @@ export default function BuddyCard({
 
   const status = getStatusBadge();
   const initials = buddyName.split(' ').map(n => n[0]).join('').toUpperCase();
+  
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
 
   return (
     <Card 
@@ -56,6 +64,11 @@ export default function BuddyCard({
             <p className="text-sm text-muted-foreground truncate" data-testid="text-buddy-email">
               {buddyEmail}
             </p>
+            {connectedAt && (
+              <p className="text-xs text-muted-foreground mt-1" data-testid="text-connected-date">
+                Connected {formatDate(connectedAt)}
+              </p>
+            )}
           </div>
         </div>
 

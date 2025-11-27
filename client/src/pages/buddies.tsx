@@ -20,6 +20,7 @@ interface Buddy {
     profileImageUrl?: string;
   };
   potBalance: number;
+  connectedAt: string;
 }
 
 export default function BuddiesPage() {
@@ -289,6 +290,7 @@ export default function BuddiesPage() {
                   potBalance={buddy.potBalance}
                   weeklyStatus={getWeeklyStatus()}
                   avatarUrl={buddy.buddy.profileImageUrl}
+                  connectedAt={buddy.connectedAt}
                   onClick={() => console.log('Clicked:', buddy.buddy.name)}
                 />
               ))}
