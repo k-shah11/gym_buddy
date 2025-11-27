@@ -151,6 +151,24 @@ export default function DashboardPage() {
   
   const currentStreak = streak === 0 ? '0 weeks' : streak === 1 ? '1 week' : `${streak}+ weeks`;
 
+  // Calculate missed logging days (days with no workout entry, only completed past days - excludes today)
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  let missedLoggingDays = 0;
+  weeksData.forEach((week) => {
+    const days = getWeekDays(week);
+    days.forEach((status, dayIndex) => {
+      if (status === null) {
+        // Check if this day is in the past (before today, not including today)
+        const dayDate = getDateForDay(week.weekStartDate, dayIndex);
+        if (dayDate < todayStr) {
+          missedLoggingDays++;
+        }
+      }
+    });
+  });
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -159,12 +177,12 @@ export default function DashboardPage() {
         </h1>
 
         <Card className="rounded-2xl p-4 sm:p-6 border-card-border">
-          <div className="grid grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6">
             <div>
               <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-1">
                 Total Workouts
               </p>
-              <p className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-total-workouts">
+              <p className="text-2xl sm:text-4xl font-bold text-foreground" data-testid="text-total-workouts">
                 {totalWorkouts}
               </p>
             </div>
@@ -172,8 +190,16 @@ export default function DashboardPage() {
               <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-1">
                 Current Streak
               </p>
-              <p className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-current-streak">
+              <p className="text-2xl sm:text-4xl font-bold text-foreground" data-testid="text-current-streak">
                 {currentStreak}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-1">
+                Missed Logging
+              </p>
+              <p className="text-2xl sm:text-4xl font-bold text-foreground" data-testid="text-missed-logging">
+                {missedLoggingDays} {missedLoggingDays === 1 ? 'day' : 'days'}
               </p>
             </div>
           </div>
