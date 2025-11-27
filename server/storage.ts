@@ -359,16 +359,20 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(settlements.weekStartDate))
       .limit(1);
 
-    // Use last settlement date or pair creation date as start point
-    // Ensure we have a proper Date object
+    // Get pair creation date
+    const pairCreatedDate = pair.createdAt instanceof Date 
+      ? pair.createdAt 
+      : new Date(pair.createdAt);
+
+    // Use the LATER of: last settlement date OR pair creation date
+    // This ensures we never count missed workouts from before the pair was created
     let startDate: Date;
     if (lastSettlements.length > 0) {
-      startDate = new Date(lastSettlements[0].weekStartDate);
+      const settlementDate = new Date(lastSettlements[0].weekStartDate);
+      // Use whichever is later
+      startDate = settlementDate > pairCreatedDate ? settlementDate : pairCreatedDate;
     } else {
-      // pair.createdAt might be a Date or string, handle both
-      startDate = pair.createdAt instanceof Date 
-        ? pair.createdAt 
-        : new Date(pair.createdAt);
+      startDate = pairCreatedDate;
     }
 
     // Format date as YYYY-MM-DD using local timezone to match how workout dates are stored

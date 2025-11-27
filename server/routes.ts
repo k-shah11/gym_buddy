@@ -350,11 +350,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const pair of pairs) {
         const buddyId = pair.buddyId; // This is now correctly calculated by getUserPairs
         
+        // Get pair creation date as YYYY-MM-DD (local timezone)
+        const pairCreatedAt = new Date(pair.createdAt);
+        const pairCreatedDate = `${pairCreatedAt.getFullYear()}-${String(pairCreatedAt.getMonth() + 1).padStart(2, '0')}-${String(pairCreatedAt.getDate()).padStart(2, '0')}`;
+        
         // Check last 4 weeks
         for (let weeksAgo = 1; weeksAgo <= 4; weeksAgo++) {
           const date = new Date();
           date.setDate(date.getDate() - (weeksAgo * 7));
           const weekStart = getWeekStartDate(date);
+          
+          // Skip weeks that started before the pair was created
+          if (weekStart < pairCreatedDate) continue;
           
           // Check if settlement already exists
           const existingSettlement = await storage.getSettlementForWeek(pair.id, weekStart);
