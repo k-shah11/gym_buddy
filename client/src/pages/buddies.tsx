@@ -21,6 +21,8 @@ interface Buddy {
   };
   potBalance: number;
   connectedAt: string;
+  userWeeklyCount: number;
+  buddyWeeklyCount: number;
 }
 
 export default function BuddiesPage() {
@@ -151,8 +153,6 @@ export default function BuddiesPage() {
   });
 
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
-
-  const getWeeklyStatus = () => 'both-on-track' as const;
 
   if (isLoading) {
     return (
@@ -303,7 +303,8 @@ export default function BuddiesPage() {
                   buddyName={buddy.buddy.name}
                   buddyEmail={buddy.buddy.email}
                   potBalance={buddy.potBalance}
-                  weeklyStatus={getWeeklyStatus()}
+                  userWeeklyCount={buddy.userWeeklyCount}
+                  buddyWeeklyCount={buddy.buddyWeeklyCount}
                   avatarUrl={buddy.buddy.profileImageUrl}
                   connectedAt={buddy.connectedAt}
                   onClick={() => console.log('Clicked:', buddy.buddy.name)}

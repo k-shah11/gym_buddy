@@ -61,17 +61,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       const pairs = await storage.getUserPairs(userId);
       
-      // Map to buddy format with pot info
-      const buddies = pairs.map(pair => ({
-        pairId: pair.id,
-        buddy: {
-          id: pair.buddyUser.id,
-          name: `${pair.buddyUser.firstName || ''} ${pair.buddyUser.lastName || ''}`.trim() || pair.buddyUser.email,
-          email: pair.buddyUser.email,
-          profileImageUrl: pair.buddyUser.profileImageUrl,
-        },
-        potBalance: pair.potBalance,
-        connectedAt: pair.createdAt,
+      // Get current week start date
+      const currentWeekStart = getWeekStartDate(new Date());
+      
+      // Get user's workout count for this week
+      const userWeeklyCount = await storage.getWeekWorkoutCount(userId, currentWeekStart);
+      
+      // Map to buddy format with pot info and weekly workout counts
+      const buddies = await Promise.all(pairs.map(async (pair) => {
+        // Get buddy's workout count for this week
+        const buddyWeeklyCount = await storage.getWeekWorkoutCount(pair.buddyId, currentWeekStart);
+        
+        return {
+          pairId: pair.id,
+          buddy: {
+            id: pair.buddyUser.id,
+            name: `${pair.buddyUser.firstName || ''} ${pair.buddyUser.lastName || ''}`.trim() || pair.buddyUser.email,
+            email: pair.buddyUser.email,
+            profileImageUrl: pair.buddyUser.profileImageUrl,
+          },
+          potBalance: pair.potBalance,
+          connectedAt: pair.createdAt,
+          userWeeklyCount,
+          buddyWeeklyCount,
+        };
       }));
       
       res.json(buddies);

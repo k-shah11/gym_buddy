@@ -7,7 +7,8 @@ interface BuddyCardProps {
   buddyName: string;
   buddyEmail: string;
   potBalance: number;
-  weeklyStatus: 'both-on-track' | 'you-behind' | 'they-behind' | 'both-behind';
+  userWeeklyCount: number;
+  buddyWeeklyCount: number;
   avatarUrl?: string;
   connectedAt?: string;
   onClick?: () => void;
@@ -17,21 +18,19 @@ export default function BuddyCard({
   buddyName, 
   buddyEmail, 
   potBalance, 
-  weeklyStatus,
+  userWeeklyCount,
+  buddyWeeklyCount,
   avatarUrl,
   connectedAt,
   onClick 
 }: BuddyCardProps) {
   const getStatusBadge = () => {
-    switch (weeklyStatus) {
-      case 'both-on-track':
-        return { text: 'Both on track', variant: 'default' as const };
-      case 'you-behind':
-        return { text: "You're behind", variant: 'destructive' as const };
-      case 'they-behind':
-        return { text: "They're behind", variant: 'secondary' as const };
-      case 'both-behind':
-        return { text: 'Both behind', variant: 'outline' as const };
+    if (userWeeklyCount > buddyWeeklyCount) {
+      return { text: "You're ahead", variant: 'default' as const };
+    } else if (userWeeklyCount < buddyWeeklyCount) {
+      return { text: "You're behind", variant: 'destructive' as const };
+    } else {
+      return { text: 'Tied', variant: 'secondary' as const };
     }
   };
 
