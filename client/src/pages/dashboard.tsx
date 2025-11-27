@@ -101,7 +101,11 @@ export default function DashboardPage() {
     const [year, month, day] = weekStartDate.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     date.setDate(date.getDate() + dayIndex);
-    return date.toISOString().split('T')[0];
+    // Format as local date string to avoid timezone shifts
+    const resultYear = date.getFullYear();
+    const resultMonth = String(date.getMonth() + 1).padStart(2, '0');
+    const resultDay = String(date.getDate()).padStart(2, '0');
+    return `${resultYear}-${resultMonth}-${resultDay}`;
   };
 
   // Get current status for selected day
