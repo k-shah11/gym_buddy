@@ -72,6 +72,10 @@ Preferred communication style: Simple, everyday language.
 - `POST /api/buddies` - Add new buddy
 - `GET /api/invitations/*` - Manage buddy invitations
 - `GET /api/workouts/history` - Fetch weekly workout data
+- `POST /api/buddies/:pairId/pause-request` - Request to pause/resume competition
+- `GET /api/pause-requests` - Get pending pause requests
+- `POST /api/buddies/:pairId/reset-pot-request` - Request to reset pot balance
+- `GET /api/reset-pot-requests` - Get pending reset pot requests
 
 **Authentication Strategy:**
 - Replit Auth using OpenID Connect (OIDC) with passport.js
