@@ -75,6 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check for pending pause request
         const pendingPauseRequest = await storage.getPendingPauseRequest(pair.id);
         
+        // Check for pending reset pot request
+        const pendingResetPotRequest = await storage.getPendingResetPotRequest(pair.id);
+        
         return {
           pairId: pair.id,
           buddy: {
@@ -89,6 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buddyWeeklyCount,
           isPaused: pair.isPaused,
           hasPendingPauseRequest: !!pendingPauseRequest,
+          hasPendingResetPotRequest: !!pendingResetPotRequest,
         };
       }));
       
@@ -297,6 +301,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error denying pause request:", error);
       res.status(500).json({ message: "Failed to deny pause request" });
+    }
+  });
+
+  // Request to reset pot with a buddy
+  app.post('/api/buddies/:pairId/reset-pot-request', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { pairId } = req.params;
+      
+      const pair = await storage.getPair(pairId);
+      if (!pair) {
+        return res.status(404).json({ message: "Buddy pair not found" });
+      }
+      
+      if (pair.userAId !== userId && pair.userBId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      // Check if there's already a pending request
+      const existingRequest = await storage.getPendingResetPotRequest(pairId);
+      if (existingRequest) {
+        return res.status(400).json({ message: "There's already a pending reset pot request for this buddy" });
+      }
+      
+      const request = await storage.createResetPotRequest({
+        pairId,
+        requesterId: userId,
+      });
+      
+      res.json({
+        message: "Reset pot request sent to your buddy",
+        request,
+      });
+    } catch (error) {
+      console.error("Error creating reset pot request:", error);
+      res.status(500).json({ message: "Failed to create reset pot request" });
+    }
+  });
+
+  // Get reset pot requests for user
+  app.get('/api/reset-pot-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const requests = await storage.getResetPotRequestsForUser(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching reset pot requests:", error);
+      res.status(500).json({ message: "Failed to fetch reset pot requests" });
+    }
+  });
+
+  // Accept a reset pot request
+  app.post('/api/reset-pot-requests/:requestId/accept', isAuthenticated, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const request = await storage.respondToResetPotRequest(requestId, true);
+      res.json({ message: "Request accepted - pot has been reset to ₹0", request });
+    } catch (error) {
+      console.error("Error accepting reset pot request:", error);
+      res.status(500).json({ message: "Failed to accept reset pot request" });
+    }
+  });
+
+  // Deny a reset pot request
+  app.post('/api/reset-pot-requests/:requestId/deny', isAuthenticated, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const request = await storage.respondToResetPotRequest(requestId, false);
+      res.json({ message: "Request denied", request });
+    } catch (error) {
+      console.error("Error denying reset pot request:", error);
+      res.status(500).json({ message: "Failed to deny reset pot request" });
     }
   });
 

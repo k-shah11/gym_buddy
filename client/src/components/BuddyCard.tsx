@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Pause, Play } from "lucide-react";
+import { Trash2, Pause, Play, RotateCcw } from "lucide-react";
 import honeyPot from "@assets/generated_images/honey_pot_icon.png";
 
 interface BuddyCardProps {
@@ -27,11 +27,14 @@ interface BuddyCardProps {
   connectedAt?: string;
   isPaused?: boolean;
   hasPendingPauseRequest?: boolean;
+  hasPendingResetPotRequest?: boolean;
   onClick?: () => void;
   onDelete?: (pairId: string) => void;
   onPauseToggle?: (pairId: string) => void;
+  onResetPot?: (pairId: string) => void;
   isDeleting?: boolean;
   isPauseLoading?: boolean;
+  isResetPotLoading?: boolean;
 }
 
 export default function BuddyCard({ 
@@ -45,11 +48,14 @@ export default function BuddyCard({
   connectedAt,
   isPaused = false,
   hasPendingPauseRequest = false,
+  hasPendingResetPotRequest = false,
   onClick,
   onDelete,
   onPauseToggle,
+  onResetPot,
   isDeleting = false,
-  isPauseLoading = false
+  isPauseLoading = false,
+  isResetPotLoading = false
 }: BuddyCardProps) {
   const getStatusBadge = () => {
     if (userWeeklyCount > buddyWeeklyCount) {
@@ -131,6 +137,21 @@ export default function BuddyCard({
               title={hasPendingPauseRequest ? "Request pending" : (isPaused ? "Resume" : "Pause")}
             >
               {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </Button>
+          )}
+
+          {onResetPot && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="text-blue-600"
+              onClick={(e) => { e.stopPropagation(); onResetPot(pairId); }}
+              disabled={hasPendingResetPotRequest || isResetPotLoading || potBalance === 0}
+              data-testid={`button-reset-pot-${pairId}`}
+              aria-label="Request pot reset"
+              title={hasPendingResetPotRequest ? "Request pending" : (potBalance === 0 ? "Pot is empty" : "Request pot reset")}
+            >
+              <RotateCcw className="w-4 h-4" />
             </Button>
           )}
 

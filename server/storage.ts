@@ -5,6 +5,7 @@ import {
   settlements,
   buddyInvitations,
   pauseRequests,
+  resetPotRequests,
   type User,
   type UpsertUser,
   type Pair,
@@ -17,6 +18,8 @@ import {
   type InsertBuddyInvitation,
   type PauseRequest,
   type InsertPauseRequest,
+  type ResetPotRequest,
+  type InsertResetPotRequest,
   type PairWithUsers,
 } from "@shared/schema";
 import { db } from "./db";
@@ -62,6 +65,12 @@ export interface IStorage {
   getPauseRequestsForUser(userId: string): Promise<Array<PauseRequest & { requester: User; pair: Pair }>>;
   respondToPauseRequest(requestId: string, accept: boolean): Promise<PauseRequest>;
   setPairPaused(pairId: string, isPaused: boolean): Promise<Pair>;
+  
+  // Reset pot request operations
+  createResetPotRequest(request: InsertResetPotRequest): Promise<ResetPotRequest>;
+  getPendingResetPotRequest(pairId: string): Promise<ResetPotRequest | undefined>;
+  getResetPotRequestsForUser(userId: string): Promise<Array<ResetPotRequest & { requester: User; pair: Pair }>>;
+  respondToResetPotRequest(requestId: string, accept: boolean): Promise<ResetPotRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -530,6 +539,75 @@ export class DatabaseStorage implements IStorage {
     }
 
     return results;
+  }
+
+  // Reset pot request operations
+  async createResetPotRequest(request: InsertResetPotRequest): Promise<ResetPotRequest> {
+    const [result] = await db
+      .insert(resetPotRequests)
+      .values(request)
+      .returning();
+    return result;
+  }
+
+  async getPendingResetPotRequest(pairId: string): Promise<ResetPotRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(resetPotRequests)
+      .where(and(
+        eq(resetPotRequests.pairId, pairId),
+        eq(resetPotRequests.status, "pending")
+      ));
+    return request;
+  }
+
+  async getResetPotRequestsForUser(userId: string): Promise<Array<ResetPotRequest & { requester: User; pair: Pair }>> {
+    const userPairs = await this.getUserPairs(userId);
+    const pairIds = userPairs.map(p => p.id);
+    
+    if (pairIds.length === 0) return [];
+    
+    const requests = await db
+      .select()
+      .from(resetPotRequests)
+      .where(and(
+        eq(resetPotRequests.status, "pending"),
+        sql`${resetPotRequests.pairId} = ANY(${pairIds})`,
+        sql`${resetPotRequests.requesterId} != ${userId}`
+      ));
+    
+    return Promise.all(
+      requests.map(async (req) => {
+        const [requester] = await db.select().from(users).where(eq(users.id, req.requesterId));
+        const [pair] = await db.select().from(pairs).where(eq(pairs.id, req.pairId));
+        return { ...req, requester: requester!, pair: pair! };
+      })
+    );
+  }
+
+  async respondToResetPotRequest(requestId: string, accept: boolean): Promise<ResetPotRequest> {
+    const [request] = await db
+      .select()
+      .from(resetPotRequests)
+      .where(eq(resetPotRequests.id, requestId));
+    
+    if (!request) throw new Error("Request not found");
+    
+    const [updated] = await db
+      .update(resetPotRequests)
+      .set({
+        status: accept ? "accepted" : "denied",
+        respondedAt: new Date(),
+      })
+      .where(eq(resetPotRequests.id, requestId))
+      .returning();
+    
+    // If accepted, reset the pot balance to 0
+    if (accept) {
+      await this.resetPotBalance(request.pairId);
+    }
+    
+    return updated;
   }
 }
 
