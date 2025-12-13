@@ -219,6 +219,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete a buddy pair
+  app.delete('/api/buddies/:pairId', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { pairId } = req.params;
+      
+      // Get the pair to verify user is part of it
+      const pair = await storage.getPair(pairId);
+      if (!pair) {
+        return res.status(404).json({ message: "Buddy pair not found" });
+      }
+      
+      // Verify user is part of this pair
+      if (pair.userAId !== userId && pair.userBId !== userId) {
+        return res.status(403).json({ message: "You can only delete your own buddy connections" });
+      }
+      
+      await storage.deletePair(pairId);
+      
+      res.json({ message: "Buddy connection removed successfully" });
+    } catch (error) {
+      console.error("Error deleting buddy:", error);
+      res.status(500).json({ message: "Failed to remove buddy" });
+    }
+  });
+
   // Workout routes
   app.get('/api/workouts/today', isAuthenticated, async (req, res) => {
     try {

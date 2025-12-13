@@ -152,6 +152,42 @@ export default function BuddiesPage() {
     },
   });
 
+  const deleteBuddyMutation = useMutation({
+    mutationFn: async (pairId: string) => {
+      return await apiRequest('DELETE', `/api/buddies/${pairId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Buddy Removed",
+        description: "The buddy connection has been removed.",
+      });
+    },
+    onError: (error: any) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove buddy. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteBuddy = (pairId: string) => {
+    deleteBuddyMutation.mutate(pairId);
+  };
+
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
 
   if (isLoading) {
@@ -300,6 +336,7 @@ export default function BuddiesPage() {
               {buddies.map((buddy) => (
                 <BuddyCard
                   key={buddy.pairId}
+                  pairId={buddy.pairId}
                   buddyName={buddy.buddy.name}
                   buddyEmail={buddy.buddy.email}
                   potBalance={buddy.potBalance}
@@ -308,6 +345,8 @@ export default function BuddiesPage() {
                   avatarUrl={buddy.buddy.profileImageUrl}
                   connectedAt={buddy.connectedAt}
                   onClick={() => console.log('Clicked:', buddy.buddy.name)}
+                  onDelete={handleDeleteBuddy}
+                  isDeleting={deleteBuddyMutation.isPending}
                 />
               ))}
             </div>

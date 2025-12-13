@@ -49,6 +49,9 @@ export interface IStorage {
   acceptInvitation(invitationId: string, acceptingUserId: string): Promise<{ invitation: BuddyInvitation; pair: Pair }>;
   getPendingInvitations(userId: string): Promise<Array<BuddyInvitation & { invitee: Partial<User> | null }>>;
   deleteInvitation(invitationId: string): Promise<void>;
+  
+  // Delete pair operations
+  deletePair(pairId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -342,6 +345,12 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(buddyInvitations)
       .where(eq(buddyInvitations.id, invitationId));
+  }
+
+  async deletePair(pairId: string): Promise<void> {
+    await db
+      .delete(pairs)
+      .where(eq(pairs.id, pairId));
   }
 
   async recalculatePotBalance(pairId: string, userId: string): Promise<number> {

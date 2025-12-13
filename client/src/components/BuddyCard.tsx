@@ -1,9 +1,23 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 import honeyPot from "@assets/generated_images/honey_pot_icon.png";
 
 interface BuddyCardProps {
+  pairId: string;
   buddyName: string;
   buddyEmail: string;
   potBalance: number;
@@ -12,9 +26,12 @@ interface BuddyCardProps {
   avatarUrl?: string;
   connectedAt?: string;
   onClick?: () => void;
+  onDelete?: (pairId: string) => void;
+  isDeleting?: boolean;
 }
 
 export default function BuddyCard({ 
+  pairId,
   buddyName, 
   buddyEmail, 
   potBalance, 
@@ -22,7 +39,9 @@ export default function BuddyCard({
   buddyWeeklyCount,
   avatarUrl,
   connectedAt,
-  onClick 
+  onClick,
+  onDelete,
+  isDeleting = false
 }: BuddyCardProps) {
   const getStatusBadge = () => {
     if (userWeeklyCount > buddyWeeklyCount) {
@@ -85,6 +104,43 @@ export default function BuddyCard({
           <Badge variant={status.variant} className="whitespace-nowrap text-xs" data-testid="badge-status">
             {status.text}
           </Badge>
+
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={(e) => e.stopPropagation()}
+                  disabled={isDeleting}
+                  data-testid={`button-delete-buddy-${pairId}`}
+                  aria-label="Remove buddy"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remove Buddy?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to remove {buddyName} as your gym buddy? 
+                    This will clear the shared pot of ₹{potBalance} and cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => onDelete(pairId)}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-delete"
+                  >
+                    Remove
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
     </Card>
