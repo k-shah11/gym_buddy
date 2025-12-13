@@ -103,6 +103,19 @@ export const pauseRequests = pgTable("pause_requests", {
   requesterIdx: index("pause_requests_requester_idx").on(table.requesterId),
 }));
 
+// Reset Pot Requests table - stores pending requests to reset the pot balance
+export const resetPotRequests = pgTable("reset_pot_requests", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  pairId: varchar("pair_id", { length: 255 }).notNull().references(() => pairs.id, { onDelete: "cascade" }),
+  requesterId: varchar("requester_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status", { enum: ["pending", "accepted", "denied"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+}, (table) => ({
+  pairIdx: index("reset_pot_requests_pair_idx").on(table.pairId),
+  requesterIdx: index("reset_pot_requests_requester_idx").on(table.requesterId),
+}));
+
 // Zod schemas for validation
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -141,6 +154,13 @@ export const insertPauseRequestSchema = createInsertSchema(pauseRequests).omit({
   respondedAt: true,
 });
 
+export const insertResetPotRequestSchema = createInsertSchema(resetPotRequests).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  respondedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -159,6 +179,9 @@ export type InsertBuddyInvitation = z.infer<typeof insertBuddyInvitationSchema>;
 
 export type PauseRequest = typeof pauseRequests.$inferSelect;
 export type InsertPauseRequest = z.infer<typeof insertPauseRequestSchema>;
+
+export type ResetPotRequest = typeof resetPotRequests.$inferSelect;
+export type InsertResetPotRequest = z.infer<typeof insertResetPotRequestSchema>;
 
 // Helper type for pair with user details
 export type PairWithUsers = Pair & {
