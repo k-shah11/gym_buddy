@@ -4,7 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import BuddyCard from "@/components/BuddyCard";
 import AddBuddyDialog from "@/components/AddBuddyDialog";
 import StatsCard from "@/components/StatsCard";
-import { Coins, Mail, Check, Trash2, RotateCcw } from "lucide-react";
+import { Coins, Mail, Check, Trash2, RotateCcw, X, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,27 @@ interface Buddy {
   connectedAt: string;
   userWeeklyCount: number;
   buddyWeeklyCount: number;
+  isPaused: boolean;
+  hasPendingPauseRequest: boolean;
+}
+
+interface PauseRequest {
+  id: string;
+  pairId: string;
+  requesterId: string;
+  requestType: 'pause' | 'resume';
+  status: 'pending' | 'accepted' | 'denied';
+  createdAt: string;
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  pair: {
+    id: string;
+    isPaused: boolean;
+  };
 }
 
 export default function BuddiesPage() {
@@ -41,6 +62,11 @@ export default function BuddiesPage() {
   // Fetch invitations received by user
   const { data: receivedInvitations = [] } = useQuery<any[]>({
     queryKey: ['/api/invitations/received'],
+  });
+
+  // Fetch pending pause requests for user
+  const { data: pauseRequests = [] } = useQuery<PauseRequest[]>({
+    queryKey: ['/api/pause-requests'],
   });
 
   // Add buddy mutation
@@ -188,6 +214,82 @@ export default function BuddiesPage() {
     deleteBuddyMutation.mutate(pairId);
   };
 
+  // Pause request mutation
+  const pauseRequestMutation = useMutation({
+    mutationFn: async (pairId: string) => {
+      return await apiRequest('POST', `/api/buddies/${pairId}/pause-request`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pause-requests'] });
+      toast({
+        title: "Request Sent",
+        description: "Your pause/resume request has been sent to your buddy.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send pause request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const acceptPauseRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest('POST', `/api/pause-requests/${requestId}/accept`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pause-requests'] });
+      toast({
+        title: "Request Accepted",
+        description: "The competition status has been updated.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to accept request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const denyPauseRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest('POST', `/api/pause-requests/${requestId}/deny`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/pause-requests'] });
+      toast({
+        title: "Request Denied",
+        description: "The pause request has been denied.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deny request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePauseToggle = (pairId: string) => {
+    pauseRequestMutation.mutate(pairId);
+  };
+
+  const handleAcceptPauseRequest = (requestId: string) => {
+    acceptPauseRequestMutation.mutate(requestId);
+  };
+
+  const handleDenyPauseRequest = (requestId: string) => {
+    denyPauseRequestMutation.mutate(requestId);
+  };
+
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
 
   if (isLoading) {
@@ -283,6 +385,56 @@ export default function BuddiesPage() {
           </div>
         )}
 
+        {pauseRequests.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">Pause/Resume Requests</h2>
+            {pauseRequests.map((request) => (
+              <Card key={request.id} className="rounded-2xl p-3 sm:p-4 border-card-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {request.requestType === 'pause' ? (
+                      <Pause className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    ) : (
+                      <Play className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm sm:text-base truncate">
+                        {request.requester.firstName} {request.requester.lastName}
+                      </p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        wants to {request.requestType} the competition
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 self-end sm:self-auto">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleAcceptPauseRequest(request.id)}
+                      disabled={acceptPauseRequestMutation.isPending || denyPauseRequestMutation.isPending}
+                      data-testid={`button-accept-pause-request-${request.id}`}
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Accept
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDenyPauseRequest(request.id)}
+                      disabled={denyPauseRequestMutation.isPending}
+                      className="text-destructive"
+                      data-testid={`button-deny-pause-request-${request.id}`}
+                      aria-label="Deny request"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {sentInvitations.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Invitations Sent</h2>
@@ -344,9 +496,13 @@ export default function BuddiesPage() {
                   buddyWeeklyCount={buddy.buddyWeeklyCount}
                   avatarUrl={buddy.buddy.profileImageUrl}
                   connectedAt={buddy.connectedAt}
+                  isPaused={buddy.isPaused}
+                  hasPendingPauseRequest={buddy.hasPendingPauseRequest}
                   onClick={() => console.log('Clicked:', buddy.buddy.name)}
                   onDelete={handleDeleteBuddy}
+                  onPauseToggle={handlePauseToggle}
                   isDeleting={deleteBuddyMutation.isPending}
+                  isPauseLoading={pauseRequestMutation.isPending}
                 />
               ))}
             </div>
