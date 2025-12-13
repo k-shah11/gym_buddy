@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, date, timestamp, unique, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, date, timestamp, unique, index, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -33,6 +33,7 @@ export const pairs = pgTable("pairs", {
   userAId: varchar("user_a_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   userBId: varchar("user_b_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   potBalance: integer("pot_balance").notNull().default(0), // in rupees/coins
+  isPaused: boolean("is_paused").notNull().default(false), // whether competition is paused
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -87,6 +88,21 @@ export const buddyInvitations = pgTable("buddy_invitations", {
   emailIdx: index("invitations_email_idx").on(table.inviteeEmail),
 }));
 
+// Pause Requests table - stores pending requests to pause/resume competition
+export const pauseRequests = pgTable("pause_requests", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`gen_random_uuid()`),
+  pairId: varchar("pair_id", { length: 255 }).notNull().references(() => pairs.id, { onDelete: "cascade" }),
+  requesterId: varchar("requester_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  requestType: text("request_type", { enum: ["pause", "resume"] }).notNull(),
+  status: text("status", { enum: ["pending", "accepted", "denied"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+}, (table) => ({
+  // Only one pending request per pair at a time
+  pairIdx: index("pause_requests_pair_idx").on(table.pairId),
+  requesterIdx: index("pause_requests_requester_idx").on(table.requesterId),
+}));
+
 // Zod schemas for validation
 export const upsertUserSchema = createInsertSchema(users).omit({
   createdAt: true,
@@ -118,6 +134,13 @@ export const insertBuddyInvitationSchema = createInsertSchema(buddyInvitations).
   acceptedAt: true,
 });
 
+export const insertPauseRequestSchema = createInsertSchema(pauseRequests).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  respondedAt: true,
+});
+
 // TypeScript types
 export type User = typeof users.$inferSelect;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -133,6 +156,9 @@ export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
 
 export type BuddyInvitation = typeof buddyInvitations.$inferSelect;
 export type InsertBuddyInvitation = z.infer<typeof insertBuddyInvitationSchema>;
+
+export type PauseRequest = typeof pauseRequests.$inferSelect;
+export type InsertPauseRequest = z.infer<typeof insertPauseRequestSchema>;
 
 // Helper type for pair with user details
 export type PairWithUsers = Pair & {

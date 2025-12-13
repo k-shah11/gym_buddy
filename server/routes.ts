@@ -72,6 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get buddy's workout count for this week
         const buddyWeeklyCount = await storage.getWeekWorkoutCount(pair.buddyId, currentWeekStart);
         
+        // Check for pending pause request
+        const pendingPauseRequest = await storage.getPendingPauseRequest(pair.id);
+        
         return {
           pairId: pair.id,
           buddy: {
@@ -84,6 +87,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           connectedAt: pair.createdAt,
           userWeeklyCount,
           buddyWeeklyCount,
+          isPaused: pair.isPaused,
+          hasPendingPauseRequest: !!pendingPauseRequest,
         };
       }));
       
@@ -219,6 +224,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Request to pause/resume competition with a buddy
+  app.post('/api/buddies/:pairId/pause-request', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { pairId } = req.params;
+      
+      const pair = await storage.getPair(pairId);
+      if (!pair) {
+        return res.status(404).json({ message: "Buddy pair not found" });
+      }
+      
+      if (pair.userAId !== userId && pair.userBId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      // Check if there's already a pending request
+      const existingRequest = await storage.getPendingPauseRequest(pairId);
+      if (existingRequest) {
+        return res.status(400).json({ message: "There's already a pending pause request for this buddy" });
+      }
+      
+      // Determine request type based on current pause state
+      const requestType = pair.isPaused ? "resume" : "pause";
+      
+      const request = await storage.createPauseRequest({
+        pairId,
+        requesterId: userId,
+        requestType,
+      });
+      
+      res.json({
+        message: `${requestType === "pause" ? "Pause" : "Resume"} request sent to your buddy`,
+        request,
+      });
+    } catch (error) {
+      console.error("Error creating pause request:", error);
+      res.status(500).json({ message: "Failed to create pause request" });
+    }
+  });
+
+  // Get pause requests for user
+  app.get('/api/pause-requests', isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const requests = await storage.getPauseRequestsForUser(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching pause requests:", error);
+      res.status(500).json({ message: "Failed to fetch pause requests" });
+    }
+  });
+
+  // Accept a pause request
+  app.post('/api/pause-requests/:requestId/accept', isAuthenticated, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const request = await storage.respondToPauseRequest(requestId, true);
+      res.json({ message: "Request accepted", request });
+    } catch (error) {
+      console.error("Error accepting pause request:", error);
+      res.status(500).json({ message: "Failed to accept pause request" });
+    }
+  });
+
+  // Deny a pause request
+  app.post('/api/pause-requests/:requestId/deny', isAuthenticated, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const request = await storage.respondToPauseRequest(requestId, false);
+      res.json({ message: "Request denied", request });
+    } catch (error) {
+      console.error("Error denying pause request:", error);
+      res.status(500).json({ message: "Failed to deny pause request" });
+    }
+  });
+
   // Delete a buddy pair
   app.delete('/api/buddies/:pairId', isAuthenticated, async (req, res) => {
     try {
@@ -294,11 +375,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Update pots only for pairs where workout date is on or after connection date
+        // Skip paused pairs - their pot won't update
         // Use local timezone to match how workout dates are stored
         if (potAdjustment !== 0) {
           await Promise.all(
             pairs
               .filter(pair => {
+                // Skip paused pairs
+                if (pair.isPaused) return false;
                 // Only update pot if workout is on or after the pair's connection date (local timezone)
                 const d = new Date(pair.createdAt);
                 const pairCreatedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

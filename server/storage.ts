@@ -4,6 +4,7 @@ import {
   workouts,
   settlements,
   buddyInvitations,
+  pauseRequests,
   type User,
   type UpsertUser,
   type Pair,
@@ -14,6 +15,8 @@ import {
   type InsertSettlement,
   type BuddyInvitation,
   type InsertBuddyInvitation,
+  type PauseRequest,
+  type InsertPauseRequest,
   type PairWithUsers,
 } from "@shared/schema";
 import { db } from "./db";
@@ -52,6 +55,13 @@ export interface IStorage {
   
   // Delete pair operations
   deletePair(pairId: string): Promise<void>;
+  
+  // Pause request operations
+  createPauseRequest(request: InsertPauseRequest): Promise<PauseRequest>;
+  getPendingPauseRequest(pairId: string): Promise<PauseRequest | undefined>;
+  getPauseRequestsForUser(userId: string): Promise<Array<PauseRequest & { requester: User; pair: Pair }>>;
+  respondToPauseRequest(requestId: string, accept: boolean): Promise<PauseRequest>;
+  setPairPaused(pairId: string, isPaused: boolean): Promise<Pair>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -164,6 +174,7 @@ export class DatabaseStorage implements IStorage {
       userAId: row.user_a_id,
       userBId: row.user_b_id,
       potBalance: row.pot_balance,
+      isPaused: row.is_paused,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -351,6 +362,91 @@ export class DatabaseStorage implements IStorage {
     await db
       .delete(pairs)
       .where(eq(pairs.id, pairId));
+  }
+
+  // Pause request operations
+  async createPauseRequest(request: InsertPauseRequest): Promise<PauseRequest> {
+    const [result] = await db
+      .insert(pauseRequests)
+      .values(request)
+      .returning();
+    return result;
+  }
+
+  async getPendingPauseRequest(pairId: string): Promise<PauseRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(pauseRequests)
+      .where(and(
+        eq(pauseRequests.pairId, pairId),
+        eq(pauseRequests.status, "pending")
+      ));
+    return request;
+  }
+
+  async getPauseRequestsForUser(userId: string): Promise<Array<PauseRequest & { requester: User; pair: Pair }>> {
+    // Get all pairs where user is a member
+    const userPairs = await this.getUserPairs(userId);
+    const pairIds = userPairs.map(p => p.id);
+    
+    if (pairIds.length === 0) return [];
+    
+    // Get pending requests for these pairs where user is NOT the requester
+    const requests = await db
+      .select()
+      .from(pauseRequests)
+      .where(and(
+        eq(pauseRequests.status, "pending"),
+        sql`${pauseRequests.pairId} = ANY(${pairIds})`,
+        sql`${pauseRequests.requesterId} != ${userId}`
+      ));
+    
+    return Promise.all(
+      requests.map(async (req) => {
+        const [requester] = await db.select().from(users).where(eq(users.id, req.requesterId));
+        const [pair] = await db.select().from(pairs).where(eq(pairs.id, req.pairId));
+        return { ...req, requester: requester!, pair: pair! };
+      })
+    );
+  }
+
+  async respondToPauseRequest(requestId: string, accept: boolean): Promise<PauseRequest> {
+    const [request] = await db
+      .select()
+      .from(pauseRequests)
+      .where(eq(pauseRequests.id, requestId));
+    
+    if (!request) throw new Error("Request not found");
+    
+    // Update request status
+    const [updated] = await db
+      .update(pauseRequests)
+      .set({
+        status: accept ? "accepted" : "denied",
+        respondedAt: new Date(),
+      })
+      .where(eq(pauseRequests.id, requestId))
+      .returning();
+    
+    // If accepted, update the pair's paused status
+    if (accept) {
+      const newPausedState = request.requestType === "pause";
+      await this.setPairPaused(request.pairId, newPausedState);
+    }
+    
+    return updated;
+  }
+
+  async setPairPaused(pairId: string, isPaused: boolean): Promise<Pair> {
+    const [pair] = await db
+      .update(pairs)
+      .set({
+        isPaused,
+        updatedAt: new Date(),
+      })
+      .where(eq(pairs.id, pairId))
+      .returning();
+    return pair;
   }
 
   async recalculatePotBalance(pairId: string, userId: string): Promise<number> {
