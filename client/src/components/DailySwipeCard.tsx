@@ -1,8 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import blobNeutral from "@assets/generated_images/clean_blob_neutral_dumbbells.png";
-import blobHappy from "@assets/generated_images/clean_blob_happy_celebrating.png";
-import blobSad from "@assets/generated_images/clean_blob_sad_crying.png";
+import blobNeutral from "@assets/generated_images/blob_mascot_cream_background.png";
+import blobHappy from "@assets/generated_images/blob_mascot_cream_background.png";
+import blobSad from "@assets/generated_images/blob_mascot_cream_background.png";
 import { useState } from "react";
 import { Check, X } from "lucide-react";
 
