@@ -25,6 +25,7 @@ interface Buddy {
   buddyWeeklyCount: number;
   isPaused: boolean;
   hasPendingPauseRequest: boolean;
+  hasPendingResetPotRequest: boolean;
 }
 
 interface PauseRequest {
@@ -43,6 +44,24 @@ interface PauseRequest {
   pair: {
     id: string;
     isPaused: boolean;
+  };
+}
+
+interface ResetPotRequest {
+  id: string;
+  pairId: string;
+  requesterId: string;
+  status: 'pending' | 'accepted' | 'denied';
+  createdAt: string;
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  pair: {
+    id: string;
+    potBalance: number;
   };
 }
 
@@ -67,6 +86,11 @@ export default function BuddiesPage() {
   // Fetch pending pause requests for user
   const { data: pauseRequests = [] } = useQuery<PauseRequest[]>({
     queryKey: ['/api/pause-requests'],
+  });
+
+  // Fetch pending reset pot requests for user
+  const { data: resetPotRequests = [] } = useQuery<ResetPotRequest[]>({
+    queryKey: ['/api/reset-pot-requests'],
   });
 
   // Add buddy mutation
@@ -278,6 +302,71 @@ export default function BuddiesPage() {
     },
   });
 
+  // Reset pot request mutation
+  const resetPotRequestMutation = useMutation({
+    mutationFn: async (pairId: string) => {
+      return await apiRequest('POST', `/api/buddies/${pairId}/reset-pot-request`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reset-pot-requests'] });
+      toast({
+        title: "Request Sent",
+        description: "Your reset pot request has been sent to your buddy.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send reset pot request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const acceptResetPotRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest('POST', `/api/reset-pot-requests/${requestId}/accept`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reset-pot-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/stats'] });
+      toast({
+        title: "Pot Reset",
+        description: "The pot has been reset to ₹0.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to accept request",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const denyResetPotRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest('POST', `/api/reset-pot-requests/${requestId}/deny`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/buddies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reset-pot-requests'] });
+      toast({
+        title: "Request Denied",
+        description: "The reset pot request has been denied.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deny request",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handlePauseToggle = (pairId: string) => {
     pauseRequestMutation.mutate(pairId);
   };
@@ -288,6 +377,18 @@ export default function BuddiesPage() {
 
   const handleDenyPauseRequest = (requestId: string) => {
     denyPauseRequestMutation.mutate(requestId);
+  };
+
+  const handleResetPot = (pairId: string) => {
+    resetPotRequestMutation.mutate(pairId);
+  };
+
+  const handleAcceptResetPotRequest = (requestId: string) => {
+    acceptResetPotRequestMutation.mutate(requestId);
+  };
+
+  const handleDenyResetPotRequest = (requestId: string) => {
+    denyResetPotRequestMutation.mutate(requestId);
   };
 
   const totalPots = buddies.reduce((sum, buddy) => sum + buddy.potBalance, 0);
@@ -435,6 +536,52 @@ export default function BuddiesPage() {
           </div>
         )}
 
+        {resetPotRequests.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">Reset Pot Requests</h2>
+            {resetPotRequests.map((request) => (
+              <Card key={request.id} className="rounded-2xl p-3 sm:p-4 border-card-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <RotateCcw className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm sm:text-base truncate">
+                        {request.requester.firstName} {request.requester.lastName}
+                      </p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        wants to reset the pot (₹{request.pair.potBalance}) to ₹0
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 self-end sm:self-auto">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => handleAcceptResetPotRequest(request.id)}
+                      disabled={acceptResetPotRequestMutation.isPending || denyResetPotRequestMutation.isPending}
+                      data-testid={`button-accept-reset-pot-request-${request.id}`}
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Accept
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleDenyResetPotRequest(request.id)}
+                      disabled={denyResetPotRequestMutation.isPending}
+                      className="text-destructive"
+                      data-testid={`button-deny-reset-pot-request-${request.id}`}
+                      aria-label="Deny request"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
         {sentInvitations.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Invitations Sent</h2>
@@ -498,11 +645,14 @@ export default function BuddiesPage() {
                   connectedAt={buddy.connectedAt}
                   isPaused={buddy.isPaused}
                   hasPendingPauseRequest={buddy.hasPendingPauseRequest}
+                  hasPendingResetPotRequest={buddy.hasPendingResetPotRequest}
                   onClick={() => console.log('Clicked:', buddy.buddy.name)}
                   onDelete={handleDeleteBuddy}
                   onPauseToggle={handlePauseToggle}
+                  onResetPot={handleResetPot}
                   isDeleting={deleteBuddyMutation.isPending}
                   isPauseLoading={pauseRequestMutation.isPending}
+                  isResetPotLoading={resetPotRequestMutation.isPending}
                 />
               ))}
             </div>

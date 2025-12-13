@@ -69,6 +69,7 @@ export interface IStorage {
   // Reset pot request operations
   createResetPotRequest(request: InsertResetPotRequest): Promise<ResetPotRequest>;
   getPendingResetPotRequest(pairId: string): Promise<ResetPotRequest | undefined>;
+  getPendingResetPotRequestById(requestId: string): Promise<ResetPotRequest | undefined>;
   getResetPotRequestsForUser(userId: string): Promise<Array<ResetPotRequest & { requester: User; pair: Pair }>>;
   respondToResetPotRequest(requestId: string, accept: boolean): Promise<ResetPotRequest>;
 }
@@ -556,6 +557,17 @@ export class DatabaseStorage implements IStorage {
       .from(resetPotRequests)
       .where(and(
         eq(resetPotRequests.pairId, pairId),
+        eq(resetPotRequests.status, "pending")
+      ));
+    return request;
+  }
+
+  async getPendingResetPotRequestById(requestId: string): Promise<ResetPotRequest | undefined> {
+    const [request] = await db
+      .select()
+      .from(resetPotRequests)
+      .where(and(
+        eq(resetPotRequests.id, requestId),
         eq(resetPotRequests.status, "pending")
       ));
     return request;

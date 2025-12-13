@@ -355,7 +355,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Accept a reset pot request
   app.post('/api/reset-pot-requests/:requestId/accept', isAuthenticated, async (req, res) => {
     try {
+      const userId = getUserId(req);
       const { requestId } = req.params;
+      
+      // Get the request to verify authorization
+      const pendingRequest = await storage.getPendingResetPotRequestById(requestId);
+      if (!pendingRequest) {
+        return res.status(404).json({ message: "Request not found or already processed" });
+      }
+      
+      // Verify user is part of the pair but NOT the requester
+      const pair = await storage.getPair(pendingRequest.pairId);
+      if (!pair) {
+        return res.status(404).json({ message: "Buddy pair not found" });
+      }
+      
+      if (pair.userAId !== userId && pair.userBId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      if (pendingRequest.requesterId === userId) {
+        return res.status(403).json({ message: "You cannot accept your own request" });
+      }
+      
       const request = await storage.respondToResetPotRequest(requestId, true);
       res.json({ message: "Request accepted - pot has been reset to ₹0", request });
     } catch (error) {
@@ -367,7 +389,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Deny a reset pot request
   app.post('/api/reset-pot-requests/:requestId/deny', isAuthenticated, async (req, res) => {
     try {
+      const userId = getUserId(req);
       const { requestId } = req.params;
+      
+      // Get the request to verify authorization
+      const pendingRequest = await storage.getPendingResetPotRequestById(requestId);
+      if (!pendingRequest) {
+        return res.status(404).json({ message: "Request not found or already processed" });
+      }
+      
+      // Verify user is part of the pair but NOT the requester
+      const pair = await storage.getPair(pendingRequest.pairId);
+      if (!pair) {
+        return res.status(404).json({ message: "Buddy pair not found" });
+      }
+      
+      if (pair.userAId !== userId && pair.userBId !== userId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      
+      if (pendingRequest.requesterId === userId) {
+        return res.status(403).json({ message: "You cannot deny your own request" });
+      }
+      
       const request = await storage.respondToResetPotRequest(requestId, false);
       res.json({ message: "Request denied", request });
     } catch (error) {
